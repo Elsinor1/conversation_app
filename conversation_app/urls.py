@@ -17,14 +17,20 @@ from django.contrib import admin
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 from users import views as users_views 
-
-router = DefaultRouter()
+from conversations import views as conversation_views
 
 # Basic router
+router = DefaultRouter()
+
+# Registering view sets
+router.register(r'theme', conversation_views.ThemeViewSet, basename='theme')
+router.register(r'scenario', conversation_views.ScenarioViewSet, basename='scenario')
+
+# Defining endpoints from the router
 urlpatterns = router.urls
 
 # Additional endpoints
 urlpatterns += [
     path('admin/', admin.site.urls),
-    path('user/', users_views.UserAPIVies.as_view())
+    path('user/', users_views.UserAPIViews.as_view())
 ]
