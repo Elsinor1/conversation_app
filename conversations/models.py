@@ -24,5 +24,5 @@ class Scenario(Model,  TimeStampedModel, TitleSlugDescriptionModel):
     class Meta():
         verbose_name_plural = "Scenarios"
 
-    # def __str__(self):
-    #     return f"Scenario: {self.title} from theme {self.theme}"
+    def __str__(self):
+        return f"Scenario: {self.title} from {self.theme}"
