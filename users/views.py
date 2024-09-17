@@ -7,7 +7,7 @@ from json import JSONDecodeError
 from django.http import JsonResponse
 
 
-class UserAPIVies(views.APIView):
+class UserAPIViews(views.APIView):
     """Simple API viewset for User entries """
     serializer_class = UserSerializer
 

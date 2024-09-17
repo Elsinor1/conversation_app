@@ -20,6 +20,8 @@ class Scenario(Model,  TimeStampedModel, TitleSlugDescriptionModel):
 
     title = models.CharField(max_length=255, unique=True, verbose_name="titles")
     theme = models.ForeignKey(to=Theme ,on_delete=models.CASCADE, verbose_name="themes")
+    teacher_role = models.CharField(max_length=255, verbose_name="teacher_roles")
+    student_role = models.CharField(max_length=255, verbose_name="student_roles")
 
     class Meta():
         verbose_name_plural = "Scenarios"
