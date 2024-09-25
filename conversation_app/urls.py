@@ -18,6 +18,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 from users import views as users_views 
 from conversations import views as conversation_views
+from chatbots import views as chatbots_views
 
 # Basic router
 router = DefaultRouter()
@@ -25,6 +26,7 @@ router = DefaultRouter()
 # Registering view sets
 router.register(r'theme', conversation_views.ThemeViewSet, basename='theme')
 router.register(r'scenario', conversation_views.ScenarioViewSet, basename='scenario')
+router.register(r'chat', chatbots_views.ChatAPIVIewSet, basename='chat')
 
 # Defining endpoints from the router
 urlpatterns = router.urls
