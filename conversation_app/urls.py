@@ -19,6 +19,7 @@ from rest_framework.routers import DefaultRouter
 from users import views as users_views 
 from conversations import views as conversation_views
 from chatbots import views as chatbots_views
+from rest_framework.authtoken.views import obtain_auth_token
 
 # Basic router
 router = DefaultRouter()
@@ -34,5 +35,6 @@ urlpatterns = router.urls
 # Additional endpoints
 urlpatterns += [
     path('admin/', admin.site.urls),
-    path('user/', users_views.UserAPIViews.as_view())
+    path('register/', users_views.UserAPIViews.as_view()), # User registration endpoint
+    path('api-token-auth/', obtain_auth_token), # Endpoint for token authentication
 ]
