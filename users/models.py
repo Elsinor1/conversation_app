@@ -4,23 +4,7 @@ from django_extensions.db.models import (
     TimeStampedModel,
     ActivatorModel,
 )
-
-class User(
-    TimeStampedModel,
-    ActivatorModel,
-    Model):
-    """
-    users.User
-    Stores a user infromation.
-    parameter:      email: email string
-                    username: string
-    """
-    class Meta:
-        verbose_name_plural ="Users"
-
-    email = models.EmailField(unique=True, verbose_name="Emails")
-    username = models.CharField(max_length=30, unique=True, verbose_name="Usernames")
-
+from django.contrib.auth.models import User
 
 
 class Language(Model):
@@ -54,20 +38,11 @@ class LanguageLevel(Model):
     Stores language proficiency for a certain language.
     parameters:     language:model:users.Language
                     level:model:users.Level
+                    user:model:User
     """
-    language = models.ForeignKey(Language, on_delete=models.CASCADE, verbose_name="languages")
-    level = models.ForeignKey(Level, on_delete=models.CASCADE, verbose_name="levels")
+    language = models.ForeignKey(Language, on_delete=models.CASCADE, verbose_name="language")
+    level = models.ForeignKey(Level, on_delete=models.CASCADE, verbose_name="level")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="user")
 
     class Meta:
         verbose_name_plural = "Language levels"
-
-
-class Student(User):
-    """
-    users.Student
-    Student model inherits from users.User. Adds langugage level info.
-    parameters: language_level:model:users.LanguageLevel
-    """
-    language_level = models.ForeignKey(LanguageLevel, on_delete=models.CASCADE)
-    class Meta:
-        verbose_name_plural = "Students"

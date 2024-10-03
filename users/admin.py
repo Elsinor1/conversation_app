@@ -1,7 +1,11 @@
 from django.contrib import admin
-from .models import User
+from .models import Language, LanguageLevel
 
-@admin.register(User)
-class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'email', 'username')
 
+@admin.register(Language)
+class LanguageAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(LanguageLevel)
+class LanguageLevelAdmin(admin.ModelAdmin):
+    pass
