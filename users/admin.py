@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Language, LanguageLevel
+from .models import Language, LanguageLevel, Level
 
 
 @admin.register(Language)
@@ -8,4 +8,8 @@ class LanguageAdmin(admin.ModelAdmin):
 
 @admin.register(LanguageLevel)
 class LanguageLevelAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(Level)
+class LevelAdmin(admin.ModelAdmin):
     pass
