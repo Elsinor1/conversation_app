@@ -26,7 +26,6 @@ class ScenarioTestCase(APITestCase):
         """
         data = self.data
         response = self.client.post(self.url, data, HTTP_CONTENT_TYPE='application/json')
-        print(response.content)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Scenario.objects.count(), 1)
         self.assertEqual(Scenario.objects.get().title, "Test title")
