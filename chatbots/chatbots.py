@@ -5,10 +5,21 @@ from langchain_community.chat_message_histories import SQLChatMessageHistory
 from langchain_openai import ChatOpenAI
 from users.models import User
 from conversations.models import Theme, Scenario
+from users.models import LanguageLevel
 from .models import Chat
 from django.conf import settings
+from dataclasses import dataclass
 
-
+@dataclass
+class ChatMessage:
+    """
+    Stores chat objects and response from chatbot
+    parameters:
+        chat :users.models.Chat:
+        message :str:
+    """
+    chat: Chat
+    message: str
 
 class ConversationBot:
     """
@@ -56,36 +67,34 @@ class ConversationBot:
         except Exception:
             return None
 
-    def start_chat(self, theme: Theme, scenario: Scenario, user: User)-> str:
+    def start_chat(self, chat: Chat)-> ChatMessage:
         """
-        Starts a chat with the user about given theme and scenario. Takes in account User's language level. 
+        Starts a conversation with the user about given theme and scenario. Takes in account User's language level. 
+        Chat should use start_chat for the first message. For following messages use continue_chat method
         """
 
-        # Creates new chat record in DB
-        chat = Chat.objects.create(
-            user=user,
-            theme=theme,
-            scenario=scenario
-        )
         # Introduction for the chatbot, description of the theme, scenario and roles of AI and user
-        system_message = f"You are a great language teacher. You will start conversation with your student with theme: {theme.title} with this scenario {scenario.title}, described as {scenario.description}. You will be: {scenario.teacher_role} and he will be {scenario.student_role}."
+        system_message = f"""You are a great {chat.language_level.language} language teacher. You will start conversation with your student with theme: {chat.theme.title} 
+                            with this scenario {chat.scenario.title}, described as {chat.scenario.description}. 
+                            You will be: {chat.scenario.teacher_role} and he will be {chat.scenario.student_role}. Your students language level is {chat.language_level.level}, so speak to him accordingly"""
+        
         # Initial request from the user to start the conversation
         human_message = "Introduce yourself, please"
         response = self.get_response(session_id=chat.id, human_message=human_message, system_message=system_message)
         
         if response:
-            return response.content
+            return ChatMessage(chat, response.content)
         else:
             return None
 
     def continue_chat(self, chat: Chat, human_message: str)-> str:
         """
-        Continues a chat with user passgin human reply to the chatbot
+        Continues a chat with user passing human reply to the chatbot
         """
         response = self.get_response(session_id=chat.id, human_message=human_message)
         
         if response:
-            return response.content
+            return ChatMessage(chat, response.content)
         else:
             return None
     
@@ -93,4 +102,5 @@ class ConversationBot:
         """
         Deletes a chat
         """
+        # TBD
         pass

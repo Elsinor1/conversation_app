@@ -18,6 +18,9 @@ class Language(Model):
     class Meta:
         verbose_name_plural = "Languages"
 
+    def __str__(self):
+        return f"{self.name}"
+
 
 class Level(Model):
     """
@@ -31,6 +34,10 @@ class Level(Model):
 
     class Meta:
         verbose_name_plural = "Levels"
+
+    def __str__(self):
+        return f"{self.ABC_value}"
+
 
 class LanguageLevel(Model):
     """
@@ -46,3 +53,6 @@ class LanguageLevel(Model):
 
     class Meta:
         verbose_name_plural = "Language levels"
+
+    def __str__(self):
+        return f"{self.user.username} : {self.language} {self.level}"

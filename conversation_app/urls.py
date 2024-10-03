@@ -21,13 +21,14 @@ from conversations import views as conversation_views
 from chatbots import views as chatbots_views
 from rest_framework.authtoken.views import obtain_auth_token
 
+
 # Basic router
 router = DefaultRouter()
 
 # Registering view sets
 router.register(r'theme', conversation_views.ThemeViewSet, basename='theme')
-router.register(r'scenario', conversation_views.ScenarioViewSet, basename='scenario')
-router.register(r'chat', chatbots_views.ChatAPIVIewSet, basename='chat')
+router.register(r'scenario', conversation_views.ScenarioViewSet, basename='scenario') 
+router.register(r'chat', chatbots_views.ChatAPIVIewSet, basename='chat') 
 
 # Defining endpoints from the router
 urlpatterns = router.urls
@@ -37,4 +38,5 @@ urlpatterns += [
     path('admin/', admin.site.urls),
     path('register/', users_views.UserAPIViews.as_view()), # User registration endpoint
     path('api-token-auth/', obtain_auth_token), # Endpoint for token authentication
+    path('chat_message/', chatbots_views.ChatMessagesAPIView.as_view()), # Getting response from chatbot
 ]
