@@ -1,7 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APIClient, APITestCase
 from rest_framework import status
-from .models import User   
+from django.contrib.auth.models import User   
 
 class UserTestCase(APITestCase):
     """
@@ -11,20 +11,21 @@ class UserTestCase(APITestCase):
     def setUp(self):
         self.client = APIClient()
         self.data = {
-            "username" : "Billy Smith",
-            "email" : "billy.smith@test.com"
+            "username" : "Test_Username",
+            "email" : "test.email@test.com",
+            "password" : "test_password"
         }
-        self.url = "/user/"
+        self.url = "/register/"
 
     def test_create_user(self):
         """
-        Test User View create method
+        Test User View post method
         """
         data = self.data
-        response = self.client.post(self.url, data)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.client.post(self.url, data, format='vnd.api+json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(User.objects.count(), 1)
-        self.assertEqual(User.objects.get().username, "Billy Smith")
+        self.assertEqual(User.objects.get().username, "Test_Username")
 
 
     def test_create_user_without_username(self):
@@ -46,21 +47,21 @@ class UserTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-    def test_create_user_without_email(self):
+    def test_create_user_without_password(self):
         """
-        Test User View create method when email is not in data
+        Test User View create method when password is not in data
         """
-        data = self.data.pop("email")
+        data = self.data.pop("password")
         response = self.client.post(self.url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-    def test_create_user_when_email_equals_blank(self):
+    def test_create_user_when_password_equals_blank(self):
         """
-        Test User View create method when email is blank string
+        Test User View create method when password is blank string
         """
         data = self.data
-        data["email"] = ""
+        data["password"] = ""
         response = self.client.post(self.url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -70,6 +71,6 @@ class UserTestCase(APITestCase):
         Test User View create method when email not correct
         """
         data = self.data
-        data["email"] = "billy.smithtest.com"
+        data["email"] = "test.test.com"
         response = self.client.post(self.url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
