@@ -24,7 +24,7 @@ class ChatMessagesSerializer(serializers.Serializer):
     """
     Serializer for validating chat_id
     """
-    chat_id = serializers.CharField(max_length=16)
+    chat_id = serializers.CharField(max_length=40)
     message = serializers.CharField(max_length=500, required=False)
 
     def validate_chat_id(self, id):

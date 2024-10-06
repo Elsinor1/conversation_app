@@ -9,6 +9,8 @@ from users.models import LanguageLevel
 from .models import Chat
 from django.conf import settings
 from dataclasses import dataclass
+from sqlalchemy import create_engine
+import uuid
 
 @dataclass
 class ChatMessage:
@@ -30,8 +32,8 @@ class ConversationBot:
         """
         Defines basic parameters of the chatbot
         """
-        self.model = ChatOpenAI(model="gtp-3.5-turbo", temperature=0.6)
-        self.db_path = settings.DATABASES['default']['NAME']
+        self.model = ChatOpenAI(model="gpt-4o-mini", temperature=0.6)
+        self.db_path = f'sqlite:///{settings.DATABASES['default']['NAME']}'
 
 
     def get_response(self, session_id: str, human_message: str, system_message: str = "") ->AIMessage:
@@ -46,16 +48,22 @@ class ConversationBot:
                 ("human", "{human_message}"),
             ]
         )
-
+        # Create the SQLAlchemy engine 
+        engine = create_engine(str(self.db_path)) 
         chain = prompt | model
+
         chain_with_history = RunnableWithMessageHistory(
             chain,
             lambda session_id: SQLChatMessageHistory(
-                session_id=session_id, connection_string=self.db_path
+                session_id=session_id, connection=engine
             ),
             input_messages_key="human_message",
             history_messages_key="history"
         )
+
+        # Ensure session_id is a string, in case it's a UUID
+        if isinstance(session_id, uuid.UUID):
+            session_id = str(session_id)
 
         # This is where we configure the session id
         config = {"configurable": {"session_id": session_id}}
@@ -64,7 +72,8 @@ class ConversationBot:
         try:
             response = chain_with_history.invoke({"human_message": human_message}, config=config)
             return response
-        except Exception:
+        except Exception as e:
+            print("Conversation bot could not get response", e)
             return None
 
     def start_chat(self, chat: Chat)-> ChatMessage:
@@ -87,7 +96,7 @@ class ConversationBot:
         else:
             return None
 
-    def continue_chat(self, chat: Chat, human_message: str)-> str:
+    def continue_chat(self, chat: Chat, human_message: str)-> ChatMessage:
         """
         Continues a chat with user passing human reply to the chatbot
         """
