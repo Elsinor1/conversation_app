@@ -39,8 +39,8 @@ class ChatAPIVIewSet(
     def create(self, request):
         try:
             data = JSONParser().parse(request)
-            serializer = ChatModelSerializer(data=data, raise_exception=True)
-            if serializer.is_valid():
+            serializer = ChatModelSerializer(data=data)
+            if serializer.is_valid(raise_exception=True):
                 language_level = LanguageLevel.objects.get(pk=data["language_level"])
                 theme = Theme.objects.get(pk=data["theme"])
                 scenario = Scenario.objects.get(pk=data["scenario"])
@@ -66,11 +66,14 @@ class ChatMessagesAPIView(APIView):
     def post(self, request):
         try:
             data = JSONParser().parse(request)
-            serializer = ChatMessagesSerializer(data, raise_exception=True)
-            if not serializer.is_valid():
+            print("DATA", data)
+            serializer = ChatMessagesSerializer(data=data)
+            if not serializer.is_valid(raise_exception=True):
+                print("ERROR", serializer.errors)
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         except JSONDecodeError:
+            print("Json decoding error")
             return JsonResponse({"result": "error", "message": "Json decoding error"}, status=status.HTTP_400_BAD_REQUEST)
         
         chat = Chat.objects.get(pk=data["chat_id"])
@@ -79,8 +82,9 @@ class ChatMessagesAPIView(APIView):
         # If it is first message of the Chat
         if not chat.is_started:
             chatbot_message = chatbot.start_chat(chat=chat)
-        else:
-            chatbot_message = chatbot.continue_chat(chat=chat, human_message=data["message"])
             chat.is_started = True
             chat.save()
-        Response(chatbot_message, status=status.HTTP_200_OK)
+        else:
+            chatbot_message = chatbot.continue_chat(chat=chat, human_message=data["message"])
+        print("Chatbot message created", chatbot_message.message)
+        return Response(chatbot_message.message, status=status.HTTP_200_OK)
