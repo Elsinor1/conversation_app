@@ -23,7 +23,7 @@ class ChatAPIVIewSet(
     """
     Simple ViewSet for listing, creating, updating and deleting chats
     """
-    
+    authentication_classes = [TokenAuthentication]
     permission_classes=(IsAuthenticated,)
     serializer_class = ChatModelSerializer
 
