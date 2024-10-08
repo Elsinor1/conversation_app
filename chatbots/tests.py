@@ -144,75 +144,108 @@ class ChatAPITestCase(APITestCase):
         self.assertFalse(Chat.objects.filter(id=chat.id))
 
 
-# class ChatMessagesAPIViewTestCase(APITestCase):
+class ChatMessagesAPIViewTestCase(APITestCase):
     
-#     def setUp(self):
-#         self.user = User.objects.create_user(username='testuser', password='testpassword')
-#         self.token = Token.objects.create(user=self.user)
-#         self.chat = Chat.objects.create(user=self.user, title="Test Chat", is_started=False)
-#         self.client = APIClient()
-#         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
-#         self.url = reverse('chat-messages')  # Replace with your actual URL name
+    def setUp(self):
+         # Setup of test DB data 
+        self.theme = Theme.objects.create(title="Test Theme")
+        self.scenario = Scenario.objects.create(
+            title="Test Scenario",
+            theme = self.theme,
+            student_role = "Test Student Role",
+            teacher_role = "Test Teacher Role"
+            )
+        language = Language.objects.create(name="Test Language")
+        level = Level.objects.create(ABC_value="A", name="Test Level")
+        self.user = User.objects.create_user(
+            username='testuser1', 
+            password='this_is_a_test',
+            email='testuser1@test.com'
+        )
+        self.language_level = LanguageLevel.objects.create(level=level, language=language, user=self.user)
+        self.data = {
+            "theme":str(self.theme.id),
+            "scenario":str(self.scenario.id),
+            "language_level":str(self.language_level.id)
+        }
+        self.chat = Chat.objects.create(
+                user=self.user, 
+                theme=self.theme, 
+                scenario=self.scenario, 
+                language_level=self.language_level
+            )
+        self.url = "/chat_message/"
 
-#     def test_successful_chatbot_message_creation(self):
-#         """
-#         Test a successful chatbot message creation
-#         """
-#         data = {
-#             "chat_id": self.chat.id,
-#             "message": "Hello"
-#         }
-#         response = self.client.post(self.url, data, format='json')
+        # Token authentificatioin
+        self.token = Token.objects.get(user=self.user)
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key) # Passing the token to all API calls
 
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)
-#         self.assertIn("Chatbot message created", response.content.decode())
-#         self.chat.refresh_from_db()
-#         self.assertTrue(self.chat.is_started)
+    def test_successful_chat_messages_creation(self):
+        """
+        Test a successful chatbot message creation
+        """
+        data = {
+            "chat_id": self.chat.id,
+        }
 
-#     def test_missing_chat_id(self):
-#         """
-#         Test chatbot message creation with missing chat_id
-#         """
-#         data = {
-#             "message": "Hello"
-#         }
-#         response = self.client.post(self.url, data, format='json')
-        
-#         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-#         self.assertIn("chat_id", response.json())
+        self.assertFalse(self.chat.is_started) # Chat is not started yet
+        response = self.client.post(self.url, data)
 
-#     def test_missing_message(self):
-#         """
-#         Test chatbot message creation with missing message
-#         """
-#         data = {
-#             "chat_id": self.chat.id
-#         }
-#         response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(len(response.data) > 0) # Data length is > 0
+        self.chat.refresh_from_db() # Reloads the chat from the test DB
+        self.assertTrue(self.chat.is_started) # Chat is started
 
-#         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-#         self.assertIn("message", response.json())
+    def test_missing_chat_id(self):
+        """
+        Test chatbot message creation with missing chat_id
+        """
+        data = {
+            "message": "Hello"
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-#     def test_json_decoding_error(self):
-#         """
-#         Test chatbot message creation with invalid JSON input
-#         """
-#         invalid_json_data = "This is not valid JSON"
-#         response = self.client.post(self.url, invalid_json_data, content_type='application/json')
+    def test_missing_message(self):
+        """
+        Test chatbot message with missing message when chat has been already started
+        """
+        # Creating started chat
+        chat = Chat.objects.create(
+                user=self.user, 
+                theme=self.theme, 
+                scenario=self.scenario, 
+                language_level=self.language_level,
+                is_started = True
+            )
+        data = {
+            "chat_id": chat.id
+        }
+        response = self.client.post(self.url, data)
 
-#         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-#         self.assertIn("Json decoding error", response.content.decode())
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-#     def test_unauthorized_access(self):
-#         """
-#         Test chatbot message creation with missing or invalid token
-#         """
-#         # Test without token
-#         client = APIClient()  # New client without token
-#         data = {
-#             "chat_id": self.chat.id,
-#             "message": "Hello"
-#         }
-#         response = client.post(self.url, data, format='json')
+    def test_json_decoding_error(self):
+        """
+        Test chatbot message creation with invalid JSON input
+        """
+        invalid_json_data = "This is not valid JSON"
+        response = self.client.post(self.url, invalid_json_data, content_type='application/vnd.api+json')
 
-#         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("JSON parse error", response.content.decode())
+
+    def test_unauthorized_access(self):
+        """
+        Test chatbot message creation with missing or invalid token
+        """
+        # Test without token
+        client = APIClient()  # New client without token
+        data = {
+            "chat_id": self.chat.id,
+            "message": "Hello"
+        }
+        response = client.post(self.url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

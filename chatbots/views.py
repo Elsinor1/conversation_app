@@ -66,14 +66,11 @@ class ChatMessagesAPIView(APIView):
     def post(self, request):
         try:
             data = JSONParser().parse(request)
-            print("DATA", data)
             serializer = ChatMessagesSerializer(data=data)
             if not serializer.is_valid(raise_exception=True):
-                print("ERROR", serializer.errors)
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         except JSONDecodeError:
-            print("Json decoding error")
             return JsonResponse({"result": "error", "message": "Json decoding error"}, status=status.HTTP_400_BAD_REQUEST)
         
         chat = Chat.objects.get(pk=data["chat_id"])
@@ -85,6 +82,13 @@ class ChatMessagesAPIView(APIView):
             chat.is_started = True
             chat.save()
         else:
+            # If chat is started, message is mandatory
+            if "message" not in data.keys() or data["message"] == "":
+                return JsonResponse({
+                    "result":"error", 
+                    "message":"'message' not in data. Chat has already started, message is then mandatory."
+                    }, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             chatbot_message = chatbot.continue_chat(chat=chat, human_message=data["message"])
-        print("Chatbot message created", chatbot_message.message)
         return Response(chatbot_message.message, status=status.HTTP_200_OK)
