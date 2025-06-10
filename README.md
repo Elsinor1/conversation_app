@@ -10,7 +10,7 @@ Témata: Aplikace nabídne různé konverzační témata (např. objednání jí
 Scénáře: Uživatelé si mohou vybrat předem připravené scénáře, které odpovídají vybraným tématům. Každý scénář představuje situaci, ve které uživatel cvičí rozhovor (např. simulace rozhovoru s číšníkem v restauraci).
 ### 3. Interaktivní Chatbot
 Chatbot pro Konverzaci: Aplikace by mohla využívat AI-powered chatbot, který bude simulovat skutečného člověka. Chatbot by reagoval na otázky a odpovědi uživatele v reálném čase, přičemž by poskytoval okamžitou zpětnou vazbu.
-Přizpůsobení Úrovni Uživatelů: Chatbot může být přizpůsoben úrovni znalostí uživatele. Například, pokud je uživatel začátečník, chatbot může používat jednodušší slovní zásobu a strukturu věty.
+Přizpůsobení Úrovni Uživatelů: Chatbot může být přizpůsoben úrovni znalostí uživatele. Například, pokud je u    živatel začátečník, chatbot může používat jednodušší slovní zásobu a strukturu věty.
 Oprava Chyb: Chatbot může detekovat a opravovat gramatické a syntaktické chyby, případně navrhovat vhodnější fráze nebo slova.
 ### 4. Analýza Výslovnosti
 Nahrávání a Porovnávání Výslovnosti: Uživatelé mohou nahrávat své odpovědi a chatbot bude analyzovat jejich výslovnost. Uživatelé obdrží hodnocení a rady, jak zlepšit výslovnost.
