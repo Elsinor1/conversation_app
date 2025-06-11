@@ -5,7 +5,7 @@ annotated-types==0.7.0
 anyio==4.6.0
 asgiref==3.5.2
 attrs==24.2.0
-certifi==2024.8.30
+certifi>=2024.2.2
 charset-normalizer==3.3.2
 colorama==0.4.6
 dataclasses-json==0.6.7
@@ -17,24 +17,24 @@ djangorestframework==3.14.0
 djangorestframework-jsonapi==6.0.0
 frozenlist==1.4.1
 greenlet==3.1.1
-h11==0.14.0
+h11==0.14.0 --only-binary :all:
 httpcore==1.0.6
 httpx==0.27.2
 idna==3.10
 inflection==0.5.1
-jiter==0.5.0
+jiter==0.10.0 --only-binary :all:
 jsonpatch==1.33
 jsonpointer==3.0.0
-langchain==0.3.3
-langchain-community==0.3.0
-langchain-core==0.3.10
-langchain-openai==0.2.2
-langchain-text-splitters==0.3.0
-langsmith==0.1.131
+langchain>=0.1.0
+langchain-community>=0.0.10
+langchain-core>=0.1.10
+langchain-openai>=0.0.5
+langchain-text-splitters>=0.0.1
+langsmith>=0.0.69
 marshmallow==3.22.0
 multidict==6.1.0
 mypy-extensions==1.0.0
-numpy==1.26.4
+numpy==2.3.0
 openai==1.51.0
 orjson==3.10.7
 packaging==24.1
