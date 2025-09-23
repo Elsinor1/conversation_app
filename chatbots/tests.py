@@ -2,7 +2,7 @@ from django.test import TestCase
 from rest_framework.test import APITestCase, APIClient
 from conversations.models import Theme, Scenario
 from users.models import LanguageLevel, Language, Level
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User  
 from .models import Chat
 from rest_framework.authtoken.models import Token
 from rest_framework import status

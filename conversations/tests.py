@@ -15,7 +15,9 @@ class ScenarioTestCase(APITestCase):
         self.data = {
             "title" : "Test title",
             "description" : "Test description",
-            "theme" : self.theme_id
+            "theme" : self.theme_id,
+            "teacher_role" : "Test teacher role",
+            "student_role" : "Test student role"
         }
         self.url = "/scenario/"
 
