@@ -15,7 +15,6 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from django.shortcuts import render
 from rest_framework.routers import DefaultRouter
 from users import views as users_views 
 from conversations import views as conversation_views
@@ -30,13 +29,10 @@ router = DefaultRouter()
 router.register(r'theme', conversation_views.ThemeViewSet, basename='theme')
 router.register(r'scenario', conversation_views.ScenarioViewSet, basename='scenario') 
 router.register(r'chat', chatbots_views.ChatAPIVIewSet, basename='chat') 
-
-def home_view(request):
-    return render(request, 'index.html')
+urlpatterns = router.urls
 
 # Additional endpoints
-urlpatterns = [
-    path('', home_view, name='home'),
+urlpatterns += [
     path('admin/', admin.site.urls),
     path('register/', users_views.UserAPIViews.as_view()), # User registration endpoint
     path('api-token-auth/', obtain_auth_token), # Endpoint for token authentication
@@ -44,4 +40,4 @@ urlpatterns = [
 ]
 
 # Defining endpoints from the router (after home route so it doesn't override '/')
-urlpatterns += router.urls
+

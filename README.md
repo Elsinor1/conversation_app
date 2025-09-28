@@ -1,6 +1,6 @@
-# Conversation App API Documentation
+# Conversation App API
 
-A Django REST Framework API for managing conversation-based language learning with chatbot interactions.
+A Django REST Framework API for managing conversation-based language learning with chatbot interactions. This is a pure API application with no frontend templates.
 
 ## Table of Contents
 - [Authentication](#authentication)
@@ -370,6 +370,8 @@ The API returns appropriate HTTP status codes and error messages:
 
 6. **Access API:**
    All API endpoints are available at `http://127.0.0.1:8000/`
+   
+   **Note:** This is a pure API application. There is no frontend interface. Use tools like Postman, curl, or any HTTP client to interact with the API endpoints.
 
 ## Models Overview
 
