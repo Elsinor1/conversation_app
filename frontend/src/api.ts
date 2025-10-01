@@ -58,4 +58,50 @@ export async function register({ username, password, email }: RegisterParams): P
   return response.json()
 }
 
+export type Theme = {
+  id: string
+  attributes: {
+    title: string
+    description: string
+  }
+}
+
+export type Scenario = {
+  id: string
+  attributes: {
+    title: string
+    description: string
+  }
+}
+
+export async function getThemes(token: string): Promise<{data: Theme[]}> {
+  const response = await fetch('/api/theme/', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    },
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to fetch themes (${response.status}): ${text || response.statusText}`)
+  }
+  return response.json()
+}
+
+export async function getScenarios(token: string): Promise<{data: Scenario[]}> {
+  const response = await fetch('/api/scenario/', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    },
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to fetch scenarios (${response.status}): ${text || response.statusText}`)
+  }
+  return response.json()
+}
+
 

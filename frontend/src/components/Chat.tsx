@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { postChatMessage } from '../api'
 import Input from './Input'
 
@@ -9,11 +10,15 @@ interface ChatProps {
 }
 
 export default function Chat({ token }: ChatProps) {
+  const [searchParams] = useSearchParams()
   const [chatIdInput, setChatIdInput] = useState('')
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  
+  const theme = searchParams.get('theme')
+  const scenario = searchParams.get('scenario')
 
   const isUuid = (value: string) => /^[0-9a-fA-F-]{32,36}$/.test(value.trim())
 
@@ -52,7 +57,15 @@ export default function Chat({ token }: ChatProps) {
           <div className="col-12 col-md-10 col-lg-8 col-xl-6">
             <div className="card shadow">
               <div className="card-header bg-primary text-white">
-                <h1 className="h4 mb-0">Chat Interface</h1>
+                <div className="d-flex justify-content-between align-items-center">
+                  <h1 className="h4 mb-0">Chat Interface</h1>
+                  {(theme || scenario) && (
+                    <div className="text-end">
+                      {theme && <small className="d-block opacity-75">Theme: {theme}</small>}
+                      {scenario && <small className="d-block opacity-75">Scenario: {scenario}</small>}
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="card-body">

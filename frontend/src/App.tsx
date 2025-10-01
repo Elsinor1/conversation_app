@@ -7,6 +7,7 @@ import Home from './components/Home'
 import Login from './components/Login'
 import Register from './components/Register'
 import Chat from './components/Chat'
+import ChatSetup from './components/ChatSetup'
 
 function App() {
   const [token, setToken] = useState(() => getStoredToken() || '')
@@ -40,6 +41,14 @@ function App() {
               isAuthenticated ? 
                 <Navigate to="/chat" replace /> : 
                 <Register onLogin={handleLogin} />
+            } 
+          />
+          <Route 
+            path="/chat-setup" 
+            element={
+              isAuthenticated ? 
+                <ChatSetup token={token} /> : 
+                <Navigate to="/login" replace />
             } 
           />
           <Route 

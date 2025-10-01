@@ -29,6 +29,11 @@ export default function Navigation({ isAuthenticated, onLogout }: NavigationProp
             {isAuthenticated ? (
               <>
                 <li className="nav-item">
+                  <Link to="/chat-setup" className="nav-link mx-3">
+                    New Chat
+                  </Link>
+                </li>
+                <li className="nav-item">
                   <Link to="/chat" className="nav-link mx-3">
                     Chat
                   </Link>
