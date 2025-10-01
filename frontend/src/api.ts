@@ -42,4 +42,20 @@ export async function login({ username, password }: LoginParams): Promise<LoginR
   return response.json()
 }
 
+export type RegisterParams = { username: string; password: string; email?: string }
+export type RegisterResponse = { token: string; user: { id: number; username: string; email: string } }
+
+export async function register({ username, password, email }: RegisterParams): Promise<RegisterResponse> {
+  const response = await fetch('/api/register/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, email }),
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Registration failed (${response.status}): ${text || response.statusText}`)
+  }
+  return response.json()
+}
+
 

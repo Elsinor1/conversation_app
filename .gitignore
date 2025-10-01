@@ -25,10 +25,6 @@ dist-ssr
 
 .env
 .env.*
-!.env.example
-backend/.env
-frontend/.env
-frontend/.env.*
 __pycache__/
 *.pyc
 node_modules/
