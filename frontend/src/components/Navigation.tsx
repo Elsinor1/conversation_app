@@ -25,16 +25,30 @@ export default function Navigation({
   interface SideBarIconProps {
     icon: React.ReactNode;
     text?: string;
+    to?: string;
+    onClick?: () => void;
   }
 
-  const SideBarIcon = ({ icon, text = "tooltip" }: SideBarIconProps) => (
-    <div className="sidebar-icon group">
-      {icon}
-      <div className="sidebar-tooltip scale-0 group-hover:scale-100">
-        {text}
+  const SideBarIcon = ({ icon, text = "tooltip", to, onClick }: SideBarIconProps) => {
+    const content = (
+      <div className="sidebar-icon group">
+        {icon}
+        <div className="sidebar-tooltip scale-0 group-hover:scale-100">
+          {text}
+        </div>
       </div>
-    </div>
-  );
+    );
+
+    if (to) {
+      return <Link to={to}>{content}</Link>;
+    }
+
+    if (onClick) {
+      return <button onClick={onClick}>{content}</button>;
+    }
+
+    return content;
+  };
 
   return (
     <nav className="flex">
@@ -48,39 +62,39 @@ export default function Navigation({
             <SideBarIcon
               icon={<GoHomeFill size="28" />}
               text="Home"
-            ></SideBarIcon>
-            <Link to="/" className=""></Link>
+              to="/"
+            />
 
             {isAuthenticated ? (
               <>
                 <SideBarIcon
                   icon={<TbVocabulary size="28" />}
                   text="Vocabulary"
-                ></SideBarIcon>
-                <Link to="/vocabulary" className=""></Link>
+                  to="/vocabulary"
+                />
                 <SideBarIcon
                   icon={<LuSpeech size="28" />}
                   text="Language practice"
-                ></SideBarIcon>
-                <Link to="/chat" className=""></Link>
+                  to="/chat"
+                />
                 <SideBarIcon
                   icon={<LuLogOut size="28" />}
                   text="Logout"
-                ></SideBarIcon>
-                <button onClick={handleLogout} className=""></button>
+                  onClick={handleLogout}
+                />
               </>
             ) : (
               <>
                 <SideBarIcon
                   icon={<LuLogIn size="28" />}
                   text="Login"
-                ></SideBarIcon>
-                <Link to="/login" className=""></Link>
+                  to="/login"
+                />
                 <SideBarIcon
                   icon={<GiArchiveRegister size="28" />}
                   text="Register"
-                ></SideBarIcon>
-                <Link to="/register" className=""></Link>
+                  to="/register"
+                />
               </>
             )}
           </div>
