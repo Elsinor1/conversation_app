@@ -3,7 +3,12 @@ import { clearStoredToken } from "../auth";
 import { CgProfile } from "react-icons/cg";
 import { BsFillBellFill } from "react-icons/bs";
 
-export default function TopBar({ isAuthenticated, setIsAuthenticated }) {
+interface TopBarProps {
+  isAuthenticated: boolean;
+  setIsAuthenticated: (value: boolean) => void;
+}
+
+export default function TopBar({ isAuthenticated, setIsAuthenticated }: TopBarProps) {
   const navigate = useNavigate(); 
   const handleLogout = () => {
     clearStoredToken();
@@ -11,7 +16,12 @@ export default function TopBar({ isAuthenticated, setIsAuthenticated }) {
     navigate("/"); 
     };
 
-  const TopBarIcon = ({ icon, text = "tooltip", to, onClick }) => {
+  const TopBarIcon = ({ icon, text = "tooltip", to, onClick }: {
+    icon: React.ReactNode;
+    text?: string;
+    to?: string;
+    onClick?: () => void;
+  }) => {
     const content = (
       <div className="topbar-icon group">
         {icon}

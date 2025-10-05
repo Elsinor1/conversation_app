@@ -24,7 +24,7 @@ export default function Home({ isAuthenticated }: HomeProps) {
         className="absolute inset-0  h-full object-cover"
       />
       
-      <div className="text-center relative z-10">
+      <div className="text-center relative z-10 bg-bg/50 rounded-lg p-8">
         <div className="mb-12">
           <h1 className="text-6xl font-bold text-white mb-4 drop-shadow-2xl">Fluentify</h1>
           <p className="text-xl text-white drop-shadow-xl">Master languages through conversation</p>
