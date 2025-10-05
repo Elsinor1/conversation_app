@@ -33,7 +33,7 @@ export default function Button({
   
   // Color variants
   const variantClasses = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700',
+    primary: 'bg-accent text-white',
     secondary: 'bg-gray-600 text-white hover:bg-gray-700',
     success: 'bg-green-600 text-white hover:bg-green-700',
     danger: 'bg-red-600 text-white hover:bg-red-700',

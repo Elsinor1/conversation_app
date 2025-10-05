@@ -8,6 +8,7 @@ import {
 import "./App.css";
 import { getStoredToken } from "./auth";
 import Navigation from "./components/Navigation";
+import TopBar from "./components/TopBar";
 import Home from "./components/Home";
 import Login from "./components/Login";
 import Register from "./components/Register";
@@ -41,7 +42,7 @@ function App() {
                 <Navigate to="/chat" replace />
               ) : (
                 <>
-                  <Navigation isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+                  <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
                   <Login onLogin={handleLogin} />
                 </>
               )
@@ -54,7 +55,7 @@ function App() {
                 <Navigate to="/chat" replace />
               ) : (
                 <>
-                  <Navigation isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+                  <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
                   <Register onLogin={handleLogin} />
                 </>
               )

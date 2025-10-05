@@ -33,31 +33,30 @@ export default function TopBar({ isAuthenticated, setIsAuthenticated }) {
   };
   
 return (
-    <div className="topbar">
-        <div id="logo">
-            <img src="/images/Fluentify_logo_original_no_bg.png" alt="Logo" style={{ height: "40px" }} />
-        </div>
-        <div></div>
-        <TopBarIcon 
-          icon={<BsFillBellFill size="24" />} 
-          text="Notifications" 
-          to="/notifications" 
-        />
-        <TopBarIcon 
-          icon={<CgProfile size="24" />} 
-          text="Profile" 
-          to="/profile" 
-        />
+    <div className="topbar bg-bg flex justify-between items-center px-4 py-2 h-16">
+        <Link to="/" className="cursor-pointer hover:opacity-80 transition-opacity duration-200">
+            <img src="/images/fluentify_logo_small_cropped_no_bg.png" alt="Logo" className="h-12 w-auto" />
+        </Link>
+        
         {isAuthenticated && (
-          <TopBarIcon 
-            icon={<span className="text-sm">Logout</span>} 
-            text="Logout" 
-            onClick={handleLogout} 
-          />
+          <div className="flex items-center gap-4">
+            <TopBarIcon 
+              icon={<BsFillBellFill size="24" />} 
+              text="Notifications" 
+              to="/notifications" 
+            />
+            <TopBarIcon 
+              icon={<CgProfile size="24" />} 
+              text="Profile" 
+              to="/profile" 
+            />
+            <TopBarIcon 
+              icon={<span className="text-sm">Logout</span>} 
+              text="Logout" 
+              onClick={handleLogout} 
+            />
+          </div>
         )}
-        <div>
-
-        </div>
     </div>
 );
 }    
