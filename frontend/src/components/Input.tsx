@@ -35,20 +35,28 @@ export default function Input({
 }: InputProps) {
   const inputId = id || name || `input-${Math.random().toString(36).substr(2, 9)}`
   
-  const baseClasses = 'form-control'
-  const sizeClass = size ? `form-control-${size}` : ''
-  const errorClass = error ? 'is-invalid' : ''
+  const baseClasses = 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+  const sizeClasses = {
+    sm: 'px-2 py-1 text-sm',
+    lg: 'px-4 py-3 text-lg'
+  }
+  const errorClasses = error ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
+  const disabledClasses = disabled ? 'bg-gray-50 cursor-not-allowed' : ''
   
-  const allClasses = [baseClasses, sizeClass, errorClass, className]
-    .filter(Boolean)
-    .join(' ')
+  const allClasses = [
+    baseClasses,
+    size ? sizeClasses[size] : '',
+    errorClasses,
+    disabledClasses,
+    className
+  ].filter(Boolean).join(' ')
 
   return (
-    <div className="mb-3">
+    <div className="mb-4">
       {label && (
-        <label htmlFor={inputId} className="form-label">
+        <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 mb-1">
           {label}
-          {required && <span className="text-danger ms-1">*</span>}
+          {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
       <input
@@ -65,7 +73,7 @@ export default function Input({
         autoComplete={autoComplete}
       />
       {error && (
-        <div className="invalid-feedback">
+        <div className="mt-1 text-sm text-red-600">
           {error}
         </div>
       )}

@@ -1,68 +1,84 @@
-import { useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import './App.css'
-import { getStoredToken } from './auth'
-import Navigation from './components/Navigation'
-import Home from './components/Home'
-import Login from './components/Login'
-import Register from './components/Register'
-import Chat from './components/Chat'
-import ChatSetup from './components/ChatSetup'
+import { useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import "./App.css";
+import { getStoredToken } from "./auth";
+import Navigation from "./components/Navigation";
+import Home from "./components/Home";
+import Login from "./components/Login";
+import Register from "./components/Register";
+import Chat from "./components/Chat";
+import ChatSetup from "./components/ChatSetup";
 
 function App() {
-  const [token, setToken] = useState(() => getStoredToken() || '')
-  const isAuthenticated = !!token
+  const [token, setToken] = useState(() => getStoredToken() || "");
+  const isAuthenticated = !!token;
 
   const handleLogin = (newToken: string) => {
-    setToken(newToken)
-  }
+    setToken(newToken);
+  };
 
   const handleLogout = () => {
-    setToken('')
-  }
+    setToken("");
+  };
 
   return (
     <Router>
-      <div className="min-vh-100 bg-light">
+      <div className="min-h-screen bg-gray-50">
         <Navigation isAuthenticated={isAuthenticated} onLogout={handleLogout} />
         <Routes>
-          <Route path="/" element={<Home isAuthenticated={isAuthenticated} />} />
-          <Route 
-            path="/login" 
+          <Route
+            path="/"
+            element={<Home isAuthenticated={isAuthenticated} />}
+          />
+          <Route
+            path="/login"
             element={
-              isAuthenticated ? 
-                <Navigate to="/chat" replace /> : 
+              isAuthenticated ? (
+                <Navigate to="/chat" replace />
+              ) : (
                 <Login onLogin={handleLogin} />
-            } 
+              )
+            }
           />
-          <Route 
-            path="/register" 
+          <Route
+            path="/register"
             element={
-              isAuthenticated ? 
-                <Navigate to="/chat" replace /> : 
+              isAuthenticated ? (
+                <Navigate to="/chat" replace />
+              ) : (
                 <Register onLogin={handleLogin} />
-            } 
+              )
+            }
           />
-          <Route 
-            path="/chat-setup" 
+          <Route
+            path="/chat-setup"
             element={
-              isAuthenticated ? 
-                <ChatSetup token={token} /> : 
+              isAuthenticated ? (
+                <ChatSetup token={token} />
+              ) : (
                 <Navigate to="/login" replace />
-            } 
+              )
+            }
           />
-          <Route 
-            path="/chat" 
+          <Route
+            path="/chat"
             element={
-              isAuthenticated ? 
-                <Chat token={token} /> : 
+              isAuthenticated ? (
+                <Chat token={token} />
+              ) : (
                 <Navigate to="/login" replace />
-            } 
+              )
+            }
           />
         </Routes>
       </div>
     </Router>
-  )
+  );
 }
 
-export default App
+export default App;

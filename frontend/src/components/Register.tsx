@@ -131,7 +131,7 @@ export default function Register({ onLogin }: RegisterProps) {
               variant="primary"
               disabled={!username || !password || !confirmPassword}
               loading={isLoading}
-              className="w-100"
+              className="w-full"
             >
               Create account
             </Button>

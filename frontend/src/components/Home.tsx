@@ -1,5 +1,5 @@
 interface HomeProps {
-  isAuthenticated: boolean
+  isAuthenticated: boolean;
 }
 
 export default function Home({ isAuthenticated }: HomeProps) {
@@ -7,5 +7,5 @@ export default function Home({ isAuthenticated }: HomeProps) {
     <div className="bg-white min-h-[calc(100vh-4rem)]">
       {/* Empty home page - only navigation will be visible */}
     </div>
-  )
+  );
 }

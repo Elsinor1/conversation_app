@@ -98,7 +98,7 @@ export default function Login({ onLogin }: LoginProps) {
               variant="primary"
               disabled={!username || !password}
               loading={isLoading}
-              className="w-100"
+              className="w-full"
             >
               Sign in
             </Button>

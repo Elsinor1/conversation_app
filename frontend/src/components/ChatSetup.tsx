@@ -58,47 +58,56 @@ export default function ChatSetup({ token }: ChatSetupProps) {
   const selectedScenarioData = scenarios.find(s => s.id === selectedScenario)
 
   return (
-    <div className="min-vh-100 bg-light py-4">
-      <div className="container-fluid px-3">
-        <div className="row justify-content-center">
-          <div className="col-12 col-md-10 col-lg-8 col-xl-6">
-            <div className="card shadow">
-              <div className="card-header bg-primary text-white">
-                <h1 className="h4 mb-0">Setup Your Chat Experience</h1>
+    <div className="min-h-screen bg-gray-50 py-4">
+      <div className="max-w-7xl mx-auto px-3">
+        <div className="flex justify-center">
+          <div className="w-full max-w-4xl">
+            <div className="bg-white rounded-lg shadow-lg">
+              <div className="bg-blue-600 text-white px-6 py-4 rounded-t-lg">
+                <h1 className="text-xl font-semibold">Setup Your Chat Experience</h1>
               </div>
               
-              <div className="card-body">
-                <p className="text-muted mb-4">
+              <div className="p-6">
+                <p className="text-gray-600 mb-4">
                   Choose a theme and scenario to customize your AI conversation experience.
                 </p>
 
                 {/* Loading State */}
                 {isLoading && (
                   <div className="text-center py-4">
-                    <div className="spinner-border text-primary" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
-                    <p className="mt-2 text-muted">Loading themes and scenarios...</p>
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p className="mt-2 text-gray-600">Loading themes and scenarios...</p>
                   </div>
                 )}
 
                 {/* Error State */}
                 {error && (
-                  <div className="alert alert-danger" role="alert">
-                    <strong>Error:</strong> {error}
-                    <button 
-                      className="btn btn-sm btn-outline-danger ms-2"
-                      onClick={() => window.location.reload()}
-                    >
-                      Retry
-                    </button>
+                  <div className="bg-red-50 border border-red-200 rounded-md p-4" role="alert">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-red-800">
+                          <strong>Error:</strong> {error}
+                        </h3>
+                        <button 
+                          className="mt-2 text-sm text-red-600 hover:text-red-500 underline"
+                          onClick={() => window.location.reload()}
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
 
                 {/* Debug Info */}
                 {!isLoading && !error && (
-                  <div className="mb-3 p-2 bg-info bg-opacity-10 rounded">
-                    <small className="text-muted">
+                  <div className="mb-3 p-2 bg-blue-50 rounded">
+                    <small className="text-gray-600">
                       Debug: Themes: {themes.length}, Scenarios: {scenarios.length}
                     </small>
                   </div>
@@ -109,12 +118,12 @@ export default function ChatSetup({ token }: ChatSetupProps) {
                   <>
                     {/* Theme Selection */}
                     <div className="mb-4">
-                  <label htmlFor="theme" className="form-label">
+                  <label htmlFor="theme" className="block text-sm font-medium text-gray-700 mb-1">
                     <strong>Select Theme</strong>
                   </label>
                   <select
                     id="theme"
-                    className="form-select"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     value={selectedTheme}
                     onChange={(e) => setSelectedTheme(e.target.value)}
                   >
@@ -126,20 +135,20 @@ export default function ChatSetup({ token }: ChatSetupProps) {
                     ))}
                   </select>
                   {selectedThemeData && (
-                    <div className="mt-2 p-3 bg-light rounded">
-                      <small className="text-muted">{selectedThemeData.attributes.description}</small>
+                    <div className="mt-2 p-3 bg-gray-50 rounded">
+                      <small className="text-gray-600">{selectedThemeData.attributes.description}</small>
                     </div>
                   )}
                 </div>
 
                 {/* Scenario Selection */}
                 <div className="mb-4">
-                  <label htmlFor="scenario" className="form-label">
+                  <label htmlFor="scenario" className="block text-sm font-medium text-gray-700 mb-1">
                     <strong>Select Scenario</strong>
                   </label>
                   <select
                     id="scenario"
-                    className="form-select"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     value={selectedScenario}
                     onChange={(e) => setSelectedScenario(e.target.value)}
                   >
@@ -151,27 +160,27 @@ export default function ChatSetup({ token }: ChatSetupProps) {
                     ))}
                   </select>
                   {selectedScenarioData && (
-                    <div className="mt-2 p-3 bg-light rounded">
-                      <small className="text-muted">{selectedScenarioData.attributes.description}</small>
+                    <div className="mt-2 p-3 bg-gray-50 rounded">
+                      <small className="text-gray-600">{selectedScenarioData.attributes.description}</small>
                     </div>
                   )}
                 </div>
 
                 {/* Selection Summary */}
                 {selectedTheme && selectedScenario && (
-                  <div className="mb-4 p-3 bg-success bg-opacity-10 border border-success border-opacity-25 rounded">
-                    <h6 className="text-success mb-2">Ready to Start!</h6>
-                    <p className="mb-1">
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded">
+                    <h6 className="text-green-800 font-medium mb-2">Ready to Start!</h6>
+                    <p className="mb-1 text-sm">
                       <strong>Theme:</strong> {selectedThemeData?.attributes.title}
                     </p>
-                    <p className="mb-0">
+                    <p className="mb-0 text-sm">
                       <strong>Scenario:</strong> {selectedScenarioData?.attributes.title}
                     </p>
                   </div>
                 )}
 
                     {/* Action Buttons */}
-                    <div className="d-flex gap-2 justify-content-end">
+                    <div className="flex gap-2 justify-end">
                       <Button
                         variant="secondary"
                         onClick={() => navigate('/chat')}
