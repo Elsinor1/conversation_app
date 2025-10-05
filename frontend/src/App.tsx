@@ -29,7 +29,6 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
-        <Navigation isAuthenticated={isAuthenticated} onLogout={handleLogout} />
         <Routes>
           <Route
             path="/"
@@ -41,7 +40,10 @@ function App() {
               isAuthenticated ? (
                 <Navigate to="/chat" replace />
               ) : (
-                <Login onLogin={handleLogin} />
+                <>
+                  <Navigation isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+                  <Login onLogin={handleLogin} />
+                </>
               )
             }
           />
@@ -51,7 +53,10 @@ function App() {
               isAuthenticated ? (
                 <Navigate to="/chat" replace />
               ) : (
-                <Register onLogin={handleLogin} />
+                <>
+                  <Navigation isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+                  <Register onLogin={handleLogin} />
+                </>
               )
             }
           />
@@ -59,7 +64,10 @@ function App() {
             path="/chat-setup"
             element={
               isAuthenticated ? (
-                <ChatSetup token={token} />
+                <>
+                  <Navigation isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+                  <ChatSetup token={token} />
+                </>
               ) : (
                 <Navigate to="/login" replace />
               )
@@ -69,7 +77,10 @@ function App() {
             path="/chat"
             element={
               isAuthenticated ? (
-                <Chat token={token} />
+                <>
+                  <Navigation isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+                  <Chat token={token} />
+                </>
               ) : (
                 <Navigate to="/login" replace />
               )

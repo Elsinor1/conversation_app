@@ -2,10 +2,10 @@
 
 @theme {
   --color-primary: #14182d;
-  --color-secondary: #0c1020;
-  --color-tertiary: #212644;
-  --color-accent: #3d3c7d;
-  --color-highlight: #3d3c7d;
+  --color-secondary: #0b9cb2;
+  --color-tertiary: #211a41;
+  --color-accent: #feae2b;
+  --color-bg: #110d2f;
 }
 
 /* Custom styles for the conversation app */
