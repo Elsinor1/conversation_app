@@ -104,4 +104,41 @@ export async function getScenarios(token: string): Promise<{data: Scenario[]}> {
   return response.json()
 }
 
+// Dashboard API types
+export type LanguageLevel = {
+  id: number
+  language: {
+    id: number
+    name: string
+  }
+  level: {
+    id: number
+    ABC_value: string
+    name: string
+  }
+}
+
+export type DashboardStats = {
+  languages: LanguageLevel[]
+  totalChats: number
+  completedChats: number
+  vocabularyPractices: number
+  totalStudyTime: number // in minutes
+}
+
+export async function getDashboardStats(token: string): Promise<DashboardStats> {
+  const response = await fetch('/api/dashboard-stats/', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    },
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to fetch dashboard stats (${response.status}): ${text || response.statusText}`)
+  }
+  return response.json()
+}
+
 

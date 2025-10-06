@@ -1,26 +1,16 @@
-import { Link, useNavigate } from "react-router-dom";
-import { clearStoredToken } from "../auth";
-import { LuSpeech, LuLogIn, LuLogOut } from "react-icons/lu";
+import { Link } from "react-router-dom";
+import { LuSpeech, LuLogIn } from "react-icons/lu";
 import { TbVocabulary } from "react-icons/tb";
 import { GoHomeFill } from "react-icons/go";
 import { GiArchiveRegister } from "react-icons/gi";
 
 interface NavigationProps {
   isAuthenticated: boolean;
-  onLogout: () => void;
 }
 
 export default function Navigation({
   isAuthenticated,
-  onLogout,
 }: NavigationProps) {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    clearStoredToken();
-    onLogout();
-    navigate("/");
-  };
 
   interface SideBarIconProps {
     icon: React.ReactNode;
@@ -55,9 +45,9 @@ export default function Navigation({
       <div className="">
         <div className="">
           <div
-            className="fixed top-0 left-0 h-screen w-48
+            className="fixed top-16 left-0 h-[calc(100vh-4rem)] w-18
             flex flex-col 
-            bg-gray-900 text-white shadow"
+            bg-primary text-white shadow"
           >
             <SideBarIcon
               icon={<GoHomeFill size="28" />}
@@ -76,11 +66,6 @@ export default function Navigation({
                   icon={<LuSpeech size="28" />}
                   text="Language practice"
                   to="/chat"
-                />
-                <SideBarIcon
-                  icon={<LuLogOut size="28" />}
-                  text="Logout"
-                  onClick={handleLogout}
                 />
               </>
             ) : (

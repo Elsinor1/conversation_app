@@ -37,6 +37,7 @@ urlpatterns += [
     path('register/', users_views.UserAPIViews.as_view()), # User registration endpoint
     path('api-token-auth/', obtain_auth_token), # Endpoint for token authentication
     path('chat_message/', chatbots_views.ChatMessagesAPIView.as_view()), # Getting response from chatbot
+    path('dashboard-stats/', users_views.DashboardStatsAPIView.as_view()), # Dashboard statistics endpoint
 ]
 
 # Defining endpoints from the router (after home route so it doesn't override '/')

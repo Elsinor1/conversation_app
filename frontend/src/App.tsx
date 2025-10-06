@@ -33,7 +33,7 @@ function App() {
         <Routes>
           <Route
             path="/"
-            element={<Home isAuthenticated={isAuthenticated} />}
+            element={<Home isAuthenticated={isAuthenticated} onLogout={handleLogout} />}
           />
           <Route
             path="/login"
@@ -66,7 +66,8 @@ function App() {
             element={
               isAuthenticated ? (
                 <>
-                  <Navigation isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+                  <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
+                  <Navigation isAuthenticated={isAuthenticated} />
                   <ChatSetup token={token} />
                 </>
               ) : (
@@ -79,7 +80,8 @@ function App() {
             element={
               isAuthenticated ? (
                 <>
-                  <Navigation isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+                  <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
+                  <Navigation isAuthenticated={isAuthenticated} />
                   <Chat token={token} />
                 </>
               ) : (

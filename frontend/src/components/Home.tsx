@@ -1,16 +1,25 @@
 import { Link } from "react-router-dom";
 import { LuLogIn } from "react-icons/lu";
 import { GiArchiveRegister } from "react-icons/gi";
+import Dashboard from "./Dashboard";
+import TopBar from "./TopBar";
+import Navigation from "./Navigation";
+import { getStoredToken } from "../auth";
 
 interface HomeProps {
   isAuthenticated: boolean;
+  onLogout?: () => void;
 }
 
-export default function Home({ isAuthenticated }: HomeProps) {
+export default function Home({ isAuthenticated, onLogout }: HomeProps) {
+  const token = getStoredToken() || "";
+
   if (isAuthenticated) {
     return (
-      <div className="bg-white min-h-[calc(100vh-4rem)]">
-        {/* Empty home page for authenticated users - only navigation will be visible */}
+      <div className="bg-white min-h-screen">
+        <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={onLogout || (() => {})} />
+        <Navigation isAuthenticated={isAuthenticated} />
+        <Dashboard token={token} />
       </div>
     );
   }

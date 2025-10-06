@@ -51,7 +51,7 @@ export default function Chat({ token }: ChatProps) {
   }, [canSend, chatIdInput, input, token])
 
   return (
-    <div className="min-h-screen bg-gray-50 py-4">
+    <div className="min-h-screen bg-gray-50 py-4 ml-18">
       <div className="max-w-7xl mx-auto px-3">
         <div className="flex justify-center">
           <div className="w-full max-w-4xl">
