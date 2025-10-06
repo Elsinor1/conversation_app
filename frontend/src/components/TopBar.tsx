@@ -44,8 +44,12 @@ export default function TopBar({ isAuthenticated, setIsAuthenticated }: TopBarPr
   
 return (
     <div className="topbar bg-primary flex justify-between items-center px-4 py-2 h-16">
-        <Link to="/" className="cursor-pointer hover:opacity-80 transition-opacity duration-200">
-            <img src="/images/fluentify_logo_small_cropped_no_bg.png" alt="Logo" className="h-12 w-auto" />
+        <Link to="/" className="cursor-pointer transition-opacity duration-200">
+            <img 
+              src="/images/fluentify_logo_small_cropped_no_bg.png" 
+              alt="Logo" 
+              className="h-12 w-auto filter brightness-90  hover:brightness-1000 transition-all duration-300" 
+            />
         </Link>
         
         {isAuthenticated && (
