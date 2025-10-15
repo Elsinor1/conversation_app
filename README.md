@@ -1,33 +1,458 @@
-## Conversational Practice App
+# Conversation App
 
+A Django REST Framework API for managing conversation-based language learning with chatbot interactions. This is a pure API application with no frontend templates.
 
-### Applicaction contents
-### 1. Registrace a Uživatelský Profil
-Registrace/Logování: Uživatelé se mohou registrovat prostřednictvím e-mailu nebo sociálních médií. Po registraci si vytvoří profil, kde vyplní své preferované jazyky, úroveň znalosti jazyka, a oblasti zájmu (např. obchodní angličtina, cestování, atd.).
-Uživatelský profil: Obsahuje informace o pokrocích uživatele, statistikách konverzací, oblíbených tématech a uložených frázích.
-### 2. Výběr Tématu a Scénáře
-Témata: Aplikace nabídne různé konverzační témata (např. objednání jídla v restauraci, nákup v obchodě, cestování, pracovní pohovor, atd.).
-Scénáře: Uživatelé si mohou vybrat předem připravené scénáře, které odpovídají vybraným tématům. Každý scénář představuje situaci, ve které uživatel cvičí rozhovor (např. simulace rozhovoru s číšníkem v restauraci).
-### 3. Interaktivní Chatbot
-Chatbot pro Konverzaci: Aplikace by mohla využívat AI-powered chatbot, který bude simulovat skutečného člověka. Chatbot by reagoval na otázky a odpovědi uživatele v reálném čase, přičemž by poskytoval okamžitou zpětnou vazbu.
-Přizpůsobení Úrovni Uživatelů: Chatbot může být přizpůsoben úrovni znalostí uživatele. Například, pokud je uživatel začátečník, chatbot může používat jednodušší slovní zásobu a strukturu věty.
-Oprava Chyb: Chatbot může detekovat a opravovat gramatické a syntaktické chyby, případně navrhovat vhodnější fráze nebo slova.
-### 4. Analýza Výslovnosti
-Nahrávání a Porovnávání Výslovnosti: Uživatelé mohou nahrávat své odpovědi a chatbot bude analyzovat jejich výslovnost. Uživatelé obdrží hodnocení a rady, jak zlepšit výslovnost.
-Porovnání s Nativními Mluvčími: Aplikace může zahrnovat vzorové nahrávky nativních mluvčích pro porovnání a zlepšení výslovnosti.
-### 5. Zpětná Vazba a Hodnocení
-Zpětná Vazba: Po každé konverzaci dostane uživatel zpětnou vazbu zahrnující počet správných a nesprávných odpovědí, hodnocení plynulosti, výslovnosti, a gramatiky.
-Statistiky: Uživatelé mohou sledovat své pokroky, vidět historii konverzací, a získávat statistiky o zlepšení v jednotlivých oblastech (např. pokrok v gramatice, výslovnosti atd.).
-### 6. Uložení a Opakování Konverzací
-Historie Konverzací: Uživatelé mohou ukládat a znovu si projít své předchozí konverzace. Mohou se vracet k obtížným částem a cvičit je znovu.
-Opakování Cvičení: Na základě zpětné vazby může aplikace doporučit opakování určitých cvičení nebo témat, kde uživatel potřebuje zlepšení.
-### 7. Rozšiřitelnost a Integrace
-Nové Témata a Scénáře: Aplikace může být pravidelně aktualizována o nové scénáře a témata na základě zpětné vazby od uživatelů.
-API Integrace: Aplikace může poskytovat API, které umožní integraci s jinými učebními platformami nebo výukovými programy.
-Technologie a Nástroje
-Django REST Framework: Pro vytvoření robustního backendu, který bude poskytovat API pro mobilní a webové aplikace.
-Natural Language Processing (NLP): Pro analýzu uživatelských vstupů, výslovnosti a generování chatbot odpovědí. Můžete využít knihovny jako SpaCy nebo NLTK.
-Speech-to-Text a Text-to-Speech API: Například Google Cloud Speech-to-Text nebo IBM Watson pro rozpoznávání řeči a generování mluveného slova.
-### 8. Gamifikace
-Odměny a Úspěchy: Uživatelé mohou získávat odměny a úspěchy za úspěšné konverzace, což je motivuje k dalšímu cvičení.
-Žebříčky: Možnost srovnávat své výsledky s ostatními uživateli.
+## Application Features
+
+### 1. Registration and User Profile
+
+- **Registration/Login**: Users can register via email or social media. After registration, they create a profile where they specify their preferred languages, language proficiency level, and areas of interest (e.g., business English, travel, etc.).
+- **User Profile**: Contains information about the user's progress, conversation statistics, favorite topics, and saved phrases.
+
+### 2. Topic and Scenario Selection
+
+- **Topics**: The app will offer various conversational topics (e.g., ordering food in a restaurant, shopping, traveling, job interview, etc.).
+- **Scenarios**: Users can choose from pre-prepared scenarios corresponding to the selected topics. Each scenario represents a real-life situation in which the user practices a conversation (e.g., simulating a conversation with a waiter in a restaurant).
+
+### 3. Interactive Chatbot
+
+- **Conversation Chatbot**: The app may use an AI-powered chatbot that simulates a real human conversation partner. The chatbot will respond to the user's questions and answers in real time and provide instant feedback.
+- **User Level Adaptation**: The chatbot can be adjusted to the user's proficiency level. For example, if the user is a beginner, the chatbot can use simpler vocabulary and sentence structures.
+- **Error Correction**: The chatbot can detect and correct grammatical and syntactical errors, or suggest more appropriate phrases or words.
+
+### 4. Pronunciation Analysis
+
+- **Recording and Comparison**: Users can record their responses, and the chatbot will analyze their pronunciation. They will receive ratings and tips on how to improve it.
+- **Native Speaker Comparison**: The app may include sample recordings from native speakers for comparison and improvement of pronunciation.
+
+### 5. Feedback and Evaluation
+
+- **Feedback**: After each conversation, the user receives feedback including the number of correct and incorrect responses, and ratings for fluency, pronunciation, and grammar.
+- **Statistics**: Users can track their progress, view conversation history, and access detailed statistics showing improvement in different areas (e.g., grammar, pronunciation, etc.).
+
+### 6. Conversation Storage and Repetition
+
+- **Conversation History**: Users can save and review their previous conversations. They can revisit difficult parts and practice them again.
+- **Exercise Repetition**: Based on feedback, the app can recommend repeating specific exercises or topics where the user needs improvement.
+
+### 7. Extensibility and Integration
+
+- **New Topics and Scenarios**: The app can be regularly updated with new scenarios and topics based on user feedback.
+- **API Integration**: The app can provide an API that allows integration with other learning platforms or educational programs.
+
+### 8. Gamification
+
+- **Rewards and Achievements**: Users can earn rewards and achievements for successful conversations, motivating them to continue practicing.
+- **Leaderboards**: Users can compare their results with other learners.
+
+## Technologies and Tools
+
+- **Django REST Framework**: For building a robust backend that provides APIs for mobile and web applications.
+- **Natural Language Processing (NLP)**: For analyzing user input, pronunciation, and generating chatbot responses. Libraries such as SpaCy or NLTK can be used.
+- **Speech-to-Text and Text-to-Speech APIs**: For example, Google Cloud Speech-to-Text or IBM Watson can be used for speech recognition and spoken output generation.
+
+## API Documentation
+
+### Table of Contents
+- [Authentication](#authentication)
+- [API Endpoints](#api-endpoints)
+  - [User Management](#user-management)
+  - [Theme Management](#theme-management)
+  - [Scenario Management](#scenario-management)
+  - [Chat Management](#chat-management)
+  - [Chatbot Interaction](#chatbot-interaction)
+- [Error Handling](#error-handling)
+- [Setup Instructions](#setup-instructions)
+
+## Authentication
+
+This API uses Token Authentication. You need to obtain a token after registration and include it in the `Authorization` header for protected endpoints.
+
+**Format:** `Authorization: Token <your_token_here>`
+
+## API Endpoints
+
+### User Management
+
+#### Register User
+**POST** `/register/`
+
+Creates a new user account.
+
+**Request Body:**
+```json
+{
+    "username": "string",
+    "email": "string",
+    "password": "string"
+}
+```
+
+**Response:**
+```json
+{
+    "username": "string",
+    "email": "string"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://127.0.0.1:8000/register/ \
+  -H "Content-Type: application/json" \
+  -d '{"username":"u1","email":"u1@example.com","password":"pass1234"}'
+```
+
+#### Get Authentication Token
+**POST** `/api-token-auth/`
+
+Obtains an authentication token for the user.
+
+**Request Body:**
+```
+username=string&password=string
+```
+
+**Response:**
+```json
+{
+    "token": "string"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://127.0.0.1:8000/api-token-auth/ \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=u1&password=pass1234"
+```
+
+### Theme Management
+
+#### List Themes
+**GET** `/theme/`
+
+Retrieves all available conversation themes.
+
+**Response:**
+```json
+[
+    {
+        "id": "uuid",
+        "title": "string",
+        "description": "string"
+    }
+]
+```
+
+#### Create Theme
+**POST** `/theme/`
+
+Creates a new conversation theme.
+
+**Request Body:**
+```json
+{
+    "title": "string",
+    "description": "string"
+}
+```
+
+**Response:**
+```json
+{
+    "id": "uuid",
+    "title": "string",
+    "description": "string"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://127.0.0.1:8000/theme/ \
+  -H "Authorization: Token <your_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Travel","description":"Travel conversations"}'
+```
+
+#### Retrieve Theme
+**GET** `/theme/{id}/`
+
+Retrieves a specific theme by ID.
+
+#### Update Theme
+**PUT** `/theme/{id}/`
+
+Updates an existing theme.
+
+### Scenario Management
+
+#### List Scenarios
+**GET** `/scenario/`
+
+Retrieves all available conversation scenarios.
+
+**Response:**
+```json
+[
+    {
+        "id": "uuid",
+        "title": "string",
+        "slug": "string",
+        "description": "string",
+        "theme": "uuid",
+        "teacher_role": "string",
+        "student_role": "string"
+    }
+]
+```
+
+#### Create Scenario
+**POST** `/scenario/`
+
+Creates a new conversation scenario.
+
+**Request Body:**
+```json
+{
+    "title": "string",
+    "slug": "string",
+    "description": "string",
+    "theme": "uuid",
+    "teacher_role": "string",
+    "student_role": "string"
+}
+```
+
+**Response:**
+```json
+{
+    "id": "uuid",
+    "title": "string",
+    "slug": "string",
+    "description": "string",
+    "theme": "uuid",
+    "teacher_role": "string",
+    "student_role": "string"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://127.0.0.1:8000/scenario/ \
+  -H "Authorization: Token <your_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Airport","description":"At the airport","theme":"f728185c-8450-439e-85fd-e83578b25473","teacher_role":"Agent","student_role":"Traveler"}'
+```
+
+#### Retrieve Scenario
+**GET** `/scenario/{id}/`
+
+Retrieves a specific scenario by ID.
+
+#### Update Scenario
+**PUT** `/scenario/{id}/`
+
+Updates an existing scenario.
+
+### Chat Management
+
+#### List Chats
+**GET** `/chat/`
+
+Retrieves all chats for the authenticated user.
+
+**Headers:** `Authorization: Token <your_token>`
+
+**Response:**
+```json
+[
+    {
+        "theme": "uuid",
+        "scenario": "uuid",
+        "language_level": "uuid"
+    }
+]
+```
+
+#### Create Chat
+**POST** `/chat/`
+
+Creates a new chat session.
+
+**Headers:** `Authorization: Token <your_token>`
+
+**Request Body:**
+```json
+{
+    "theme": "uuid",
+    "scenario": "uuid",
+    "language_level": "uuid"
+}
+```
+
+**Response:**
+```json
+{
+    "theme": "uuid",
+    "scenario": "uuid",
+    "language_level": "uuid"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://127.0.0.1:8000/chat/ \
+  -H "Authorization: Token <your_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"theme":"f728185c-8450-439e-85fd-e83578b25473","scenario":"c99d2dad-0d83-4473-8f8e-01450d9bcbd0","language_level":"205284ef-e020-40c5-b3d3-e9aa0cb0cf16"}'
+```
+
+#### Retrieve Chat
+**GET** `/chat/{id}/`
+
+Retrieves a specific chat by ID.
+
+#### Delete Chat
+**DELETE** `/chat/{id}/`
+
+Deletes a specific chat.
+
+### Chatbot Interaction
+
+#### Send Message to Chatbot
+**POST** `/chat_message/`
+
+Sends a message to the chatbot and receives a response.
+
+**Headers:** `Authorization: Token <your_token>`
+
+**Request Body:**
+```json
+{
+    "chat_id": "uuid",
+    "message": "string" // Optional for first message
+}
+```
+
+**Response:**
+```json
+"string" // Chatbot response message
+```
+
+**Example:**
+```bash
+curl -X POST http://127.0.0.1:8000/chat_message/ \
+  -H "Authorization: Token <your_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"chat_id":"715426bf-1418-40cc-ac13-3abbee921306","message":"Hello, I need help with my flight"}'
+```
+
+**Note:** For the first message in a chat, the `message` field is optional as the chatbot will start the conversation. For subsequent messages, the `message` field is required.
+
+## Error Handling
+
+The API returns appropriate HTTP status codes and error messages:
+
+### Common Error Responses
+
+**400 Bad Request:**
+```json
+{
+    "result": "error",
+    "message": "Json decoding error"
+}
+```
+
+**400 Bad Request (Validation Error):**
+```json
+{
+    "error": "Validation error message"
+}
+```
+
+**400 Bad Request (Missing Message):**
+```json
+{
+    "result": "error",
+    "message": "'message' not in data. Chat has already started, message is then mandatory."
+}
+```
+
+**401 Unauthorized:**
+```json
+{
+    "detail": "Authentication credentials were not provided."
+}
+```
+
+### HTTP Status Codes
+- `200` - OK
+- `201` - Created
+- `400` - Bad Request
+- `401` - Unauthorized
+- `404` - Not Found
+- `500` - Internal Server Error
+
+## Setup Instructions
+
+1. **Install Dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Run Migrations:**
+   ```bash
+   python manage.py migrate
+   ```
+
+3. **Create Superuser (Optional):**
+   ```bash
+   python manage.py createsuperuser
+   ```
+
+4. **Start Development Server:**
+   ```bash
+   python manage.py runserver
+   ```
+
+5. **Access Admin Panel:**
+   Visit `http://127.0.0.1:8000/admin/` to manage data through Django admin.
+
+6. **Access API:**
+   All API endpoints are available at `http://127.0.0.1:8000/`
+   
+   **Note:** This is a pure API application. There is no frontend interface. Use tools like Postman, curl, or any HTTP client to interact with the API endpoints.
+
+## Models Overview
+
+### Theme
+- `id`: UUID (Primary Key)
+- `title`: String (Unique)
+- `description`: String
+- `created`, `modified`: Timestamps
+
+### Scenario
+- `id`: UUID (Primary Key)
+- `title`: String (Unique)
+- `slug`: String
+- `description`: String
+- `theme`: Foreign Key to Theme
+- `teacher_role`: String
+- `student_role`: String
+- `created`, `modified`: Timestamps
+
+### Chat
+- `id`: UUID (Primary Key)
+- `user`: Foreign Key to User
+- `theme`: Foreign Key to Theme
+- `scenario`: Foreign Key to Scenario
+- `language_level`: Foreign Key to LanguageLevel
+- `is_started`: Boolean
+- `created`, `modified`: Timestamps
+
+### User
+- Standard Django User model
+- `username`: String (Unique)
+- `email`: String
+- `password`: String (Hashed)

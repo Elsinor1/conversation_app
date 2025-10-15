@@ -7,19 +7,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Python
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-migrations/
-__pycache__/
-*.pyc
-
-# Node.js
-node_modules/
-dist/
-dist-ssr/
-build/
+node_modules
+dist
+dist-ssr
 *.local
 
 # Editor directories and files
@@ -32,7 +22,3 @@ build/
 *.njsproj
 *.sln
 *.sw?
-
-# Environment variables
-.env
-.env.*

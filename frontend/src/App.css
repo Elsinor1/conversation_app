@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #14182d;
+  --color-secondary:rgb(69, 78, 126);
+  --color-tertiary: #211a41;
+  --color-accent:rgb(240, 162, 36);
+  --color-bg: #110d2f;
+}
+
+/* Custom styles for the conversation app */
+#root {
+  min-height: 100vh;
+  width: 100%;
+}
+
+.sidebar-icon {
+  @apply relative flex items-center justify-center 
+  h-12 w-12 mt-2 mb-2 mx-auto shadow-lg 
+  bg-secondary text-gray-100 
+  hover:bg-accent hover:text-white hover:rounded-3xl 
+  transition-all duration-300;
+}
+
+.sidebar-tooltip {
+  @apply absolute w-auto p-2 m-2 min-w-max left-14 rounded-md shadow-md 
+  text-white bg-primary text-xs font-bold 
+  transition-all duration-100 origin-left;
+}
+
+.topbar-icon {
+  @apply relative flex items-center justify-center 
+  h-12 w-12 mt-2 mb-2 mx-auto shadow-lg 
+  bg-secondary text-gray-100 
+  hover:bg-accent hover:text-white hover:rounded-3xl 
+  transition-all duration-300;
+}
+
+
+.topbar-tooltip {
+  @apply absolute w-auto p-2 m-2 min-w-max top-12 rounded-md shadow-md 
+  text-white bg-primary text-xs font-bold 
+  transition-all duration-100 origin-left;
+}
