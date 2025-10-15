@@ -116,6 +116,7 @@ export type LanguageLevel = {
     ABC_value: string
     name: string
   }
+  progress?: number
 }
 
 export type DashboardStats = {
@@ -126,7 +127,7 @@ export type DashboardStats = {
   totalStudyTime: number // in minutes
 }
 
-export async function getDashboardStats(token: string): Promise<DashboardStats> {
+export async function getDashboardStats(token: string): Promise<{data: DashboardStats}> {
   const response = await fetch('/api/dashboard-stats/', {
     method: 'GET',
     headers: {
@@ -137,6 +138,73 @@ export async function getDashboardStats(token: string): Promise<DashboardStats> 
   if (!response.ok) {
     const text = await response.text().catch(() => '')
     throw new Error(`Failed to fetch dashboard stats (${response.status}): ${text || response.statusText}`)
+  }
+  return response.json()
+}
+
+// Language and Level API types
+export type Language = {
+  id: number
+  name: string
+}
+
+export type Level = {
+  id: number
+  ABC_value: string
+  name: string
+}
+
+export async function getLanguages(token: string): Promise<Language[]> {
+  const response = await fetch('/api/languages/', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    },
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to fetch languages (${response.status}): ${text || response.statusText}`)
+  }
+  const response_data = await response.json()
+  console.log('Languages API response:', response_data)
+  // Extract data from response structure
+  return response_data.data || response_data
+}
+
+export async function getLevels(token: string): Promise<Level[]> {
+  const response = await fetch('/api/levels/', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    },
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to fetch levels (${response.status}): ${text || response.statusText}`)
+  }
+  const response_data = await response.json()
+  console.log('Levels API response:', response_data)
+  // Extract data from response structure
+  return response_data.data || response_data
+}
+
+export async function createLanguageLevel(token: string, languageId: number, levelId: number): Promise<LanguageLevel> {
+  const response = await fetch('/api/language_level/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    },
+    body: JSON.stringify({
+      language: languageId,
+      level: levelId
+    }),
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to create language level (${response.status}): ${text || response.statusText}`)
   }
   return response.json()
 }

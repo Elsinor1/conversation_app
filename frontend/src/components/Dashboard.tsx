@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getDashboardStats, type DashboardStats } from '../api'
+import LanguageSelector from './LanguageSelector'
 import { 
   FaLanguage, 
   FaComments, 
@@ -18,6 +19,7 @@ export default function Dashboard({ token }: DashboardProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showLanguageSelector, setShowLanguageSelector] = useState(false)
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -25,31 +27,12 @@ export default function Dashboard({ token }: DashboardProps) {
         setIsLoading(true)
         setError('')
         
-        // For now, use mock data since backend endpoint doesn't exist yet
-        const mockStats: DashboardStats = {
-          languages: [
-            {
-              id: 1,
-              language: { id: 1, name: 'Spanish' },
-              level: { id: 2, ABC_value: 'B1', name: 'Intermediate' }
-            },
-            {
-              id: 2,
-              language: { id: 2, name: 'French' },
-              level: { id: 1, ABC_value: 'A2', name: 'Elementary' }
-            }
-          ],
-          totalChats: 15,
-          completedChats: 12,
-          vocabularyPractices: 45,
-          totalStudyTime: 180
-        }
-        
-        setStats(mockStats)
-        
-        // Uncomment when backend endpoint is ready:
-        // const data = await getDashboardStats(token)
-        // setStats(data)
+        console.log('Fetching dashboard stats with token:', token ? 'present' : 'missing')
+        const response = await getDashboardStats(token)
+        console.log('Dashboard stats received:', response)
+        // Handle the response structure - data might be wrapped in a 'data' property
+        const data = response.data || response
+        setStats(data)
       } catch (err: any) {
         console.error('Error fetching dashboard stats:', err)
         setError(err?.message || 'Failed to load dashboard data')
@@ -75,6 +58,29 @@ export default function Dashboard({ token }: DashboardProps) {
 
   const getProgressPercentage = (completed: number, total: number) => {
     return total > 0 ? Math.round((completed / total) * 100) : 0
+  }
+
+  const handleLanguageAdded = () => {
+    // Refresh the dashboard data
+    const fetchStats = async () => {
+      try {
+        setIsLoading(true)
+        setError('')
+        
+        console.log('Fetching dashboard stats with token:', token ? 'present' : 'missing')
+        const response = await getDashboardStats(token)
+        console.log('Dashboard stats received:', response)
+        // Handle the response structure - data might be wrapped in a 'data' property
+        const data = response.data || response
+        setStats(data)
+      } catch (err: any) {
+        console.error('Error fetching dashboard stats:', err)
+        setError(err?.message || 'Failed to load dashboard data')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchStats()
   }
 
   if (isLoading) {
@@ -121,7 +127,28 @@ export default function Dashboard({ token }: DashboardProps) {
     )
   }
 
-  if (!stats) return null
+  if (!stats) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-4 ml-18">
+        <div className="max-w-7xl mx-auto px-3">
+          <div className="text-center py-8">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Welcome to Fluentify!</h1>
+            <p className="text-gray-600 mb-6">No data available yet. Start by adding a language to your profile.</p>
+            <div className="bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Get Started</h2>
+              <p className="text-gray-600 mb-4">Add your first language to begin tracking your learning progress.</p>
+              <button 
+                onClick={() => setShowLanguageSelector(true)}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Add Language
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-4 ml-18">
@@ -236,7 +263,7 @@ export default function Dashboard({ token }: DashboardProps) {
                       <div className="bg-gray-200 rounded-full h-2">
                         <div 
                           className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${Math.random() * 100}%` }} // Mock progress
+                          style={{ width: `${langLevel.progress || 0}%` }}
                         ></div>
                       </div>
                     </div>
@@ -302,13 +329,26 @@ export default function Dashboard({ token }: DashboardProps) {
               <FaBookOpen className="h-5 w-5 text-purple-600 mr-3" />
               <span className="font-medium">Practice Vocabulary</span>
             </button>
-            <button className="flex items-center justify-center p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <button 
+              onClick={() => setShowLanguageSelector(true)}
+              className="flex items-center justify-center p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <FaGraduationCap className="h-5 w-5 text-green-600 mr-3" />
               <span className="font-medium">Add Language</span>
             </button>
           </div>
         </div>
       </div>
+      
+      {/* Language Selector Modal */}
+      {showLanguageSelector && (
+        <LanguageSelector
+          token={token}
+          onLanguageAdded={handleLanguageAdded}
+          onClose={() => setShowLanguageSelector(false)}
+          userLanguages={stats?.languages || []}
+        />
+      )}
     </div>
   )
 }

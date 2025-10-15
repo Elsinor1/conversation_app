@@ -38,6 +38,10 @@ urlpatterns += [
     path('api-token-auth/', obtain_auth_token), # Endpoint for token authentication
     path('chat_message/', chatbots_views.ChatMessagesAPIView.as_view()), # Getting response from chatbot
     path('dashboard-stats/', users_views.DashboardStatsAPIView.as_view()), # Dashboard statistics endpoint
+    path('language_level/', users_views.LanguageLevelsAPIView.as_view()), # Language levels endpoint
+    path('language_level/<uuid:pk>/', users_views.LanguageLevelsAPIView.as_view()), # Language level detail endpoint
+    path('languages/', users_views.LanguagesAPIView.as_view()), # Available languages endpoint
+    path('levels/', users_views.LevelsAPIView.as_view()), # Available levels endpoint
 ]
 
 # Defining endpoints from the router (after home route so it doesn't override '/')

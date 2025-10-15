@@ -39,7 +39,7 @@ function App() {
             path="/login"
             element={
               isAuthenticated ? (
-                <Navigate to="/chat" replace />
+                <Navigate to="/" replace />
               ) : (
                 <>
                   <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />

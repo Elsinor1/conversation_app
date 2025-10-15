@@ -4,8 +4,18 @@ from django_extensions.db.models import (
     TimeStampedModel,
     ActivatorModel,
 )
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
+from django.core.validators import MinValueValidator, MaxValueValidator
 
+class User(AbstractUser, ActivatorModel, TimeStampedModel):
+    """
+    users.User
+    Stores a user.
+    """
+    currency = models.IntegerField(default=0)
+    class Meta:
+        verbose_name_plural = "Users"
+        abstract = False
 
 class Language(Model):
     """
@@ -39,6 +49,7 @@ class Level(Model):
         return f"{self.ABC_value}"
 
 
+
 class LanguageLevel(Model):
     """
     users.LanguageLevel
@@ -50,6 +61,7 @@ class LanguageLevel(Model):
     language = models.ForeignKey(Language, on_delete=models.CASCADE, verbose_name="language")
     level = models.ForeignKey(Level, on_delete=models.CASCADE, verbose_name="level")
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="user")
+    progress = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
 
     class Meta:
         verbose_name_plural = "Language levels"

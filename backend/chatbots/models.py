@@ -1,8 +1,7 @@
 from django.db import models
 from utils.model_abstracts import Model
-from django.contrib.auth.models import User
 from conversations.models import Theme, Scenario
-from users.models import LanguageLevel
+from users.models import LanguageLevel, User
 from django_extensions.db.models import TimeStampedModel
 
 class Chat(
