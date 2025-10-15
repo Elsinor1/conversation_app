@@ -1,8 +1,59 @@
-# Conversation App API
+# Conversation App
 
 A Django REST Framework API for managing conversation-based language learning with chatbot interactions. This is a pure API application with no frontend templates.
 
-## Table of Contents
+## Application Features
+
+### 1. Registration and User Profile
+
+- **Registration/Login**: Users can register via email or social media. After registration, they create a profile where they specify their preferred languages, language proficiency level, and areas of interest (e.g., business English, travel, etc.).
+- **User Profile**: Contains information about the user's progress, conversation statistics, favorite topics, and saved phrases.
+
+### 2. Topic and Scenario Selection
+
+- **Topics**: The app will offer various conversational topics (e.g., ordering food in a restaurant, shopping, traveling, job interview, etc.).
+- **Scenarios**: Users can choose from pre-prepared scenarios corresponding to the selected topics. Each scenario represents a real-life situation in which the user practices a conversation (e.g., simulating a conversation with a waiter in a restaurant).
+
+### 3. Interactive Chatbot
+
+- **Conversation Chatbot**: The app may use an AI-powered chatbot that simulates a real human conversation partner. The chatbot will respond to the user's questions and answers in real time and provide instant feedback.
+- **User Level Adaptation**: The chatbot can be adjusted to the user's proficiency level. For example, if the user is a beginner, the chatbot can use simpler vocabulary and sentence structures.
+- **Error Correction**: The chatbot can detect and correct grammatical and syntactical errors, or suggest more appropriate phrases or words.
+
+### 4. Pronunciation Analysis
+
+- **Recording and Comparison**: Users can record their responses, and the chatbot will analyze their pronunciation. They will receive ratings and tips on how to improve it.
+- **Native Speaker Comparison**: The app may include sample recordings from native speakers for comparison and improvement of pronunciation.
+
+### 5. Feedback and Evaluation
+
+- **Feedback**: After each conversation, the user receives feedback including the number of correct and incorrect responses, and ratings for fluency, pronunciation, and grammar.
+- **Statistics**: Users can track their progress, view conversation history, and access detailed statistics showing improvement in different areas (e.g., grammar, pronunciation, etc.).
+
+### 6. Conversation Storage and Repetition
+
+- **Conversation History**: Users can save and review their previous conversations. They can revisit difficult parts and practice them again.
+- **Exercise Repetition**: Based on feedback, the app can recommend repeating specific exercises or topics where the user needs improvement.
+
+### 7. Extensibility and Integration
+
+- **New Topics and Scenarios**: The app can be regularly updated with new scenarios and topics based on user feedback.
+- **API Integration**: The app can provide an API that allows integration with other learning platforms or educational programs.
+
+### 8. Gamification
+
+- **Rewards and Achievements**: Users can earn rewards and achievements for successful conversations, motivating them to continue practicing.
+- **Leaderboards**: Users can compare their results with other learners.
+
+## Technologies and Tools
+
+- **Django REST Framework**: For building a robust backend that provides APIs for mobile and web applications.
+- **Natural Language Processing (NLP)**: For analyzing user input, pronunciation, and generating chatbot responses. Libraries such as SpaCy or NLTK can be used.
+- **Speech-to-Text and Text-to-Speech APIs**: For example, Google Cloud Speech-to-Text or IBM Watson can be used for speech recognition and spoken output generation.
+
+## API Documentation
+
+### Table of Contents
 - [Authentication](#authentication)
 - [API Endpoints](#api-endpoints)
   - [User Management](#user-management)
