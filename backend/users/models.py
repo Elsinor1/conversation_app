@@ -34,7 +34,7 @@ class Language(Model):
 
 class Level(Model):
     """
-    Uses.Level 
+    users.Level 
     Describes language proficiency.
     parameters:     ABC_value: e.g. B1
                     name: e.g. Intermediate
@@ -61,6 +61,10 @@ class LanguageLevel(Model):
     language = models.ForeignKey(Language, on_delete=models.CASCADE, verbose_name="language")
     level = models.ForeignKey(Level, on_delete=models.CASCADE, verbose_name="level")
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="user")
+    vocabularyPractices = models.IntegerField(default=0)
+    speechPractices = models.IntegerField(default=0)
+    vocabularyWords = models.IntegerField(default=0)
+    totalStudyTime = models.IntegerField(default=0)
     progress = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
 
     class Meta:
