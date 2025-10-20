@@ -65,7 +65,7 @@ export default function Navigation({
                 <SideBarIcon
                   icon={<LuSpeech size="28" />}
                   text="Language practice"
-                  to="/chat"
+                  to="/practice-setup"
                 />
               </>
             ) : (

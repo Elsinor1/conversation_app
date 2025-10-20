@@ -13,7 +13,8 @@ import Home from "./components/Home";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import Chat from "./components/Chat";
-import ChatSetup from "./components/ChatSetup";
+import LanguagePracticeSetup from "./components/LanguagePracticeSetup";
+import LanguageDashboard from "./components/LanguageDashboard";
 
 function App() {
   const [token, setToken] = useState(() => getStoredToken() || "");
@@ -62,18 +63,36 @@ function App() {
             }
           />
           <Route
-            path="/chat-setup"
+            path="/practice-setup"
             element={
               isAuthenticated ? (
                 <>
                   <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
                   <Navigation isAuthenticated={isAuthenticated} />
-                  <ChatSetup token={token} />
+                  <LanguagePracticeSetup token={token} />
                 </>
               ) : (
                 <Navigate to="/login" replace />
               )
             }
+          />
+          <Route
+            path="/practice"
+            element={
+              isAuthenticated ? (
+                <>
+                  <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
+                  <Navigation isAuthenticated={isAuthenticated} />
+                  <Chat token={token} />
+                </>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/chat-setup"
+            element={<Navigate to="/practice-setup" replace />}
           />
           <Route
             path="/chat"
@@ -83,6 +102,20 @@ function App() {
                   <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
                   <Navigation isAuthenticated={isAuthenticated} />
                   <Chat token={token} />
+                </>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/language/:languageName"
+            element={
+              isAuthenticated ? (
+                <>
+                  <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
+                  <Navigation isAuthenticated={isAuthenticated} />
+                  <LanguageDashboard token={token} />
                 </>
               ) : (
                 <Navigate to="/login" replace />

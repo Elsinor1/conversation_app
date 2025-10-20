@@ -42,6 +42,7 @@ urlpatterns += [
     path('language_level/<uuid:pk>/', users_views.LanguageLevelsAPIView.as_view()), # Language level detail endpoint
     path('languages/', users_views.LanguagesAPIView.as_view()), # Available languages endpoint
     path('levels/', users_views.LevelsAPIView.as_view()), # Available levels endpoint
+    path('practice-setup/', conversation_views.PracticeSetupAPIView.as_view()), # Practice setup data endpoint
 ]
 
 # Defining endpoints from the router (after home route so it doesn't override '/')

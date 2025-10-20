@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getDashboardStats, type DashboardStats } from '../api'
 import LanguageSelector from './LanguageSelector'
 import { 
@@ -16,6 +17,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ token }: DashboardProps) {
+  const navigate = useNavigate()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -81,6 +83,10 @@ export default function Dashboard({ token }: DashboardProps) {
       }
     }
     fetchStats()
+  }
+
+  const handleLanguageClick = (languageName: string) => {
+    navigate(`/language/${encodeURIComponent(languageName)}`)
   }
 
   if (isLoading) {
@@ -243,7 +249,11 @@ export default function Dashboard({ token }: DashboardProps) {
             ) : (
               <div className="space-y-4">
                 {stats.languages.map((langLevel) => (
-                  <div key={langLevel.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div 
+                    key={langLevel.id} 
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer hover:border-blue-300"
+                    onClick={() => handleLanguageClick(langLevel.language.name)}
+                  >
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold text-gray-900">{langLevel.language.name}</h3>

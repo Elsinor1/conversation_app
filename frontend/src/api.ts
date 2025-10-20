@@ -26,6 +26,55 @@ export async function postChatMessage({ token, chatId, message }: PostChatMessag
   return data;
 }
 
+export type CreateChatParams = {
+  token: string
+  theme: string
+  scenario: string
+  language_level: string
+}
+
+export type ChatResponse = {
+  id: string
+  theme: string
+  scenario: string
+  language_level: string
+  created_at: string
+  updated_at: string
+}
+
+export async function createChat({ token, theme, scenario, language_level }: CreateChatParams): Promise<ChatResponse> {
+  const effectiveToken = token || getStoredToken() || ''
+  const response = await fetch('/api/chat/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${effectiveToken}`,
+    },
+    body: JSON.stringify({ theme, scenario, language_level }),
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to create chat (${response.status}): ${text || response.statusText}`)
+  }
+  return response.json()
+}
+
+export async function getUserLanguageLevels(token: string): Promise<LanguageLevel[]> {
+  const effectiveToken = token || getStoredToken() || ''
+  const response = await fetch('/api/language_level/', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${effectiveToken}`,
+    },
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to fetch language levels (${response.status}): ${text || response.statusText}`)
+  }
+  return response.json()
+}
+
 export type LoginParams = { username: string; password: string }
 export type LoginResponse = { token: string }
 
@@ -58,50 +107,47 @@ export async function register({ username, password, email }: RegisterParams): P
   return response.json()
 }
 
-export type Theme = {
-  id: string
-  attributes: {
-    title: string
-    description: string
-  }
-}
-
 export type Scenario = {
   id: string
-  attributes: {
-    title: string
-    description: string
-  }
+  title: string
+  description: string
+  teacher_role: string
+  student_role: string
 }
 
-export async function getThemes(token: string): Promise<{data: Theme[]}> {
-  const response = await fetch('/api/theme/', {
+export type Theme = {
+  id: string
+  title: string
+  description: string
+  scenarios: Scenario[]
+}
+
+// Theme format types (plain objects, not JSON API)
+export type JSONAPITheme = {
+  id: string
+  title: string
+  description: string
+  scenarios: Scenario[]
+}
+
+export async function getPracticeSetupData(token: string): Promise<{themes: JSONAPITheme[], language_levels: LanguageLevel[]}> {
+  console.log('Making API call to /api/practice-setup/ with token:', token ? 'present' : 'missing')
+  const response = await fetch('/api/practice-setup/', {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Token ${token}`,
     },
   })
+  console.log('API response status:', response.status)
   if (!response.ok) {
     const text = await response.text().catch(() => '')
-    throw new Error(`Failed to fetch themes (${response.status}): ${text || response.statusText}`)
+    console.error('API error:', response.status, text)
+    throw new Error(`Failed to fetch practice setup data (${response.status}): ${text || response.statusText}`)
   }
-  return response.json()
-}
-
-export async function getScenarios(token: string): Promise<{data: Scenario[]}> {
-  const response = await fetch('/api/scenario/', {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Token ${token}`,
-    },
-  })
-  if (!response.ok) {
-    const text = await response.text().catch(() => '')
-    throw new Error(`Failed to fetch scenarios (${response.status}): ${text || response.statusText}`)
-  }
-  return response.json()
+  const data = await response.json()
+  console.log('API response data:', data)
+  return data
 }
 
 // Dashboard API types
@@ -205,6 +251,40 @@ export async function createLanguageLevel(token: string, languageId: number, lev
   if (!response.ok) {
     const text = await response.text().catch(() => '')
     throw new Error(`Failed to create language level (${response.status}): ${text || response.statusText}`)
+  }
+  return response.json()
+}
+
+// Language-specific stats types
+export type LanguageStats = {
+  language: {
+    id: number
+    name: string
+  }
+  level: {
+    id: number
+    ABC_value: string
+    name: string
+  }
+  vocabularyPractices: number
+  speechPractices: number
+  vocabularyWords: number
+  totalStudyTime: number // in minutes
+  progress: number
+}
+
+export async function getLanguageStats(token: string, languageName: string): Promise<LanguageStats> {
+  const encodedLanguageName = encodeURIComponent(languageName)
+  const response = await fetch(`/api/language-stats/${encodedLanguageName}/`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    },
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to fetch language stats (${response.status}): ${text || response.statusText}`)
   }
   return response.json()
 }
