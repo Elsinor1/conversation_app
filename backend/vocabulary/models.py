@@ -33,26 +33,6 @@ class VocabularyWord(Model, TimeStampedModel):
     def __str__(self):
         return f"{self.word} - {self.level} - {self.german_translation}"
 
-
-class VocabularyList(Model):
-    """
-    vocabulary.VocabularyList
-    Stores a vocabulary list.
-    parameters:     name: str
-                    user: model:User (many-to-many)
-    """
-    name = models.CharField(max_length=255)
-    language = models.ForeignKey(Language, on_delete=models.CASCADE, verbose_name="languages")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="users")
-    vocabulary_words = models.ManyToManyField(VocabularyWord, verbose_name="vocabulary_words")
-    
-    class Meta:
-        verbose_name_plural = "Vocabulary lists"
-
-    def __str__(self):
-        return f"{self.name} - {self.user}"
-
-
 class UserVocabularyWord(Model, TimeStampedModel):
     """
     vocabulary.UserVocabularyWord
@@ -82,6 +62,26 @@ class UserVocabularyWord(Model, TimeStampedModel):
     
     def __str__(self):
         return f"{self.user.username} - {self.vocabulary_word.word} ({self.get_learning_status_display()})"
+
+class VocabularyList(Model):
+    """
+    vocabulary.VocabularyList
+    Stores a vocabulary list.
+    parameters:     name: str
+                    user: model:User (many-to-many)
+    """
+    name = models.CharField(max_length=255)
+    language = models.ForeignKey(Language, on_delete=models.CASCADE, verbose_name="languages")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="users")
+    vocabulary_words = models.ManyToManyField(UserVocabularyWord, verbose_name="vocabulary_words")
+    
+    class Meta:
+        verbose_name_plural = "Vocabulary lists"
+
+    def __str__(self):
+        return f"{self.name} - {self.user}"
+
+
 
 
 class VocabularyPractice(Model):
