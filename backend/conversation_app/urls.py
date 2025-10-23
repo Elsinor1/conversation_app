@@ -19,6 +19,7 @@ from rest_framework.routers import DefaultRouter
 from users import views as users_views 
 from conversations import views as conversation_views
 from chatbots import views as chatbots_views
+from vocabulary import views as vocabulary_views
 from rest_framework.authtoken.views import obtain_auth_token
 
 
@@ -28,7 +29,12 @@ router = DefaultRouter()
 # Registering view sets
 router.register(r'theme', conversation_views.ThemeViewSet, basename='theme')
 router.register(r'scenario', conversation_views.ScenarioViewSet, basename='scenario') 
-router.register(r'chat', chatbots_views.ChatAPIVIewSet, basename='chat') 
+router.register(r'chat', chatbots_views.ChatAPIVIewSet, basename='chat')
+router.register(r'vocabulary-words', vocabulary_views.GeneralVocabularyWordViewSet, basename='vocabulary-words')
+router.register(r'user-vocabulary-words', vocabulary_views.UserVocabularyWordViewSet, basename='user-vocabulary-words')
+router.register(r'vocabulary-lists', vocabulary_views.VocabularyListViewSet, basename='vocabulary-lists')
+router.register(r'user-vocabulary-status', vocabulary_views.UserVocabularyWordStatusViewSet, basename='user-vocabulary-status')
+router.register(r'vocabulary-practices', vocabulary_views.VocabularyPracticeViewSet, basename='vocabulary-practices') 
 urlpatterns = router.urls
 
 # Additional endpoints
