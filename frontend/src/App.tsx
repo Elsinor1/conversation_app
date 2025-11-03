@@ -15,6 +15,7 @@ import Register from "./components/Register";
 import Chat from "./components/Chat";
 import LanguagePracticeSetup from "./components/LanguagePracticeSetup";
 import LanguageDashboard from "./components/LanguageDashboard";
+import Vocabulary from "./components/Vocabulary";
 
 function App() {
   const [token, setToken] = useState(() => getStoredToken() || "");
@@ -116,6 +117,20 @@ function App() {
                   <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
                   <Navigation isAuthenticated={isAuthenticated} />
                   <LanguageDashboard token={token} />
+                </>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/vocabulary"
+            element={
+              isAuthenticated ? (
+                <>
+                  <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
+                  <Navigation isAuthenticated={isAuthenticated} />
+                  <Vocabulary token={token} />
                 </>
               ) : (
                 <Navigate to="/login" replace />

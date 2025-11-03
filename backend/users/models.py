@@ -6,6 +6,7 @@ from django_extensions.db.models import (
 )
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
+import uuid
 
 class User(AbstractUser, ActivatorModel, TimeStampedModel):
     """
@@ -50,7 +51,7 @@ class Level(Model):
 
 
 
-class LanguageLevel(Model):
+class LanguageLevel(models.Model):
     """
     users.LanguageLevel
     Stores language proficiency for a certain language.

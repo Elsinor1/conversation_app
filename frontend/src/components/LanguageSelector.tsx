@@ -75,7 +75,7 @@ export default function LanguageSelector({ token, onLanguageAdded, onClose, user
     try {
       setIsCreating(true)
       setError('')
-      
+      console.log('Creating language level:', selectedLanguage.id, selectedLevel.id)
       await createLanguageLevel(token, selectedLanguage.id, selectedLevel.id)
       
       // Refresh the dashboard

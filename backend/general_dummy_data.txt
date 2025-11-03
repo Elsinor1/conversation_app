@@ -1,0 +1,71 @@
+# General Database Dummy Data for Fluentify
+# Format varies by model type
+# Languages: German, Czech
+# 5 records per model
+
+# ===========================================
+# LANGUAGES
+# ===========================================
+# Format: name
+German
+Czech
+
+# ===========================================
+# LEVELS
+# ===========================================
+# Format: ABC_value|name
+A1|Beginner
+A2|Elementary
+B1|Intermediate
+B2|Upper Intermediate
+C1|Advanced
+
+# ===========================================
+# THEMES
+# ===========================================
+# Format: title|description
+Travel|Conversations about traveling and tourism
+Restaurant|Dining out and food-related conversations
+Shopping|Shopping and retail conversations
+Healthcare|Medical and health-related conversations
+Work & Business|Professional and business conversations
+
+# ===========================================
+# SCENARIOS
+# ===========================================
+# Format: title|slug|description|theme|teacher_role|student_role
+Hotel Check-in|hotel-checkin|Checking into a hotel|Travel|Hotel Receptionist|Tourist
+Ordering Food|ordering-food|Ordering food at a restaurant|Restaurant|Waiter|Customer
+Buying Clothes|buying-clothes|Shopping for clothes|Shopping|Sales Assistant|Customer
+Doctor Visit|doctor-visit|Visiting a doctor|Healthcare|Doctor|Patient
+Job Interview|job-interview|Conducting a job interview|Work & Business|Interviewer|Job Candidate
+
+# ===========================================
+# VOCABULARY WORDS
+# ===========================================
+# Format: word|german_translation|czech_translation|level|theme
+Hello|Hallo|Ahoj|A1|Travel
+Goodbye|Auf Wiedersehen|Na shledanou|A1|Travel
+Thank you|Danke|Děkuji|A1|Travel
+Please|Bitte|Prosím|A1|Travel
+Excuse me|Entschuldigung|Promiňte|A1|Travel
+Food|Essen|Jídlo|A1|Restaurant
+Water|Wasser|Voda|A1|Restaurant
+Coffee|Kaffee|Káva|A1|Restaurant
+Tea|Tee|Čaj|A1|Restaurant
+Menu|Speisekarte|Jídelní lístek|A2|Restaurant
+Shirt|Hemd|Košile|A1|Shopping
+Pants|Hose|Kalhoty|A1|Shopping
+Shoes|Schuhe|Boty|A1|Shopping
+Price|Preis|Cena|A1|Shopping
+Size|Größe|Velikost|A2|Shopping
+Doctor|Arzt|Lékař|A1|Healthcare
+Medicine|Medizin|Lék|A1|Healthcare
+Pain|Schmerz|Bolest|A1|Healthcare
+Hospital|Krankenhaus|Nemocnice|A1|Healthcare
+Appointment|Termin|Schůzka|A2|Healthcare
+Work|Arbeit|Práce|A1|Work & Business
+Meeting|Besprechung|Schůzka|A2|Work & Business
+Project|Projekt|Projekt|A2|Work & Business
+Company|Firma|Společnost|A1|Work & Business
+Salary|Gehalt|Plat|B1|Work & Business

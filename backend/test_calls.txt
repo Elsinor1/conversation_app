@@ -9,43 +9,49 @@ curl -X POST http://127.0.0.1:8000/api-token-auth/ \
   -d "username=u1&password=pass1234"
 # save the token value from response
 
-User Token: {"token":"833904cb21cd7e782b8d73d9516fe06c59781aa5"}
+User Token: {"token":"e3dd39392dc0e65ae9049040a9233c40c035c54b"}
 
 # create theme
 curl -X POST http://127.0.0.1:8000/theme/ \
-  -H "Authorization: Token 833904cb21cd7e782b8d73d9516fe06c59781aa5" -H "Content-Type: application/json" \
+  -H "Authorization: Token e3dd39392dc0e65ae9049040a9233c40c035c54b" -H "Content-Type: application/json" \
   -d '{"title":"Travel","description":"Travel conversations"}'
 
   Theme ID f728185c-8450-439e-85fd-e83578b25473
 
 # create theme 2
 curl -X POST http://127.0.0.1:8000/theme/ \
-  -H "Authorization: Token 833904cb21cd7e782b8d73d9516fe06c59781aa5" -H "Content-Type: application/json" \
+  -H "Authorization: Token e3dd39392dc0e65ae9049040a9233c40c035c54b" -H "Content-Type: application/json" \
   -d '{"title":"In a restaurant","description":"Conversations in a restaurant"}'
 
 {"data":{"type":"Theme","id":"ffc22071-2657-4637-ac32-2eba21d32b9c","attributes":{"title":"In a restaurant","description":"Conversations in a restaurant"}}}
 
 # create scenario (use theme id from previous response)
 curl -X POST http://127.0.0.1:8000/scenario/ \
-  -H "Authorization: Token 833904cb21cd7e782b8d73d9516fe06c59781aa5" -H "Content-Type: application/json" \
+  -H "Authorization: Token e3dd39392dc0e65ae9049040a9233c40c035c54b" -H "Content-Type: application/json" \
   -d '{"title":"Airport","description":"At the airport","theme":"f728185c-8450-439e-85fd-e83578b25473","teacher_role":"Agent","student_role":"Traveler"}'
 
  scenario id : c99d2dad-0d83-4473-8f8e-01450d9bcbd0
 
+# create language_level
+curl -X POST http://127.0.0.1:8000/language_level/ \
+  -H "Authorization: Token e3dd39392dc0e65ae9049040a9233c40c035c54b" -H "Content-Type: application/json" \
+  -d '{"language":"a14e4f7d-ebc6-4382-995d-2070039530ca","level":"697aad93-8a80-4793-988a-1d677c294972"}'
+
+
  language level id: 205284ef-e020-40c5-b3d3-e9aa0cb0cf16
 
 curl -X POST http://127.0.0.1:8000/chat/ \
-  -H "Authorization: Token 833904cb21cd7e782b8d73d9516fe06c59781aa5" -H "Content-Type: application/json" \
+  -H "Authorization: Token e3dd39392dc0e65ae9049040a9233c40c035c54b" -H "Content-Type: application/json" \
   -d '{"theme":"f728185c-8450-439e-85fd-e83578b25473","scenario":"c99d2dad-0d83-4473-8f8e-01450d9bcbd0","language_level":"205284ef-e020-40c5-b3d3-e9aa0cb0cf16"}'
 
 Chat Id: 715426bf-1418-40cc-ac13-3abbee921306
 
 curl -X POST http://127.0.0.1:8000/chat_message/ \
-  -H "Authorization: Token 833904cb21cd7e782b8d73d9516fe06c59781aa5" -H "Content-Type: application/json" \
+  -H "Authorization: Token e3dd39392dc0e65ae9049040a9233c40c035c54b" -H "Content-Type: application/json" \
   -d '{"chat_id":"715426bf-1418-40cc-ac13-3abbee921306"}'
 
 
 Continue chat
 curl -X POST http://127.0.0.1:8000/chat_message/ \
-  -H "Authorization: Token 833904cb21cd7e782b8d73d9516fe06c59781aa5" -H "Content-Type: application/json" \
+  -H "Authorization: Token e3dd39392dc0e65ae9049040a9233c40c035c54b" -H "Content-Type: application/json" \
   -d '{"chat_id":"715426bf-1418-40cc-ac13-3abbee921306","message":"Hallo, Ich bin Martin Lokvenc, I suche einen kleinen Ausflug in Mallorca Stadt!"}'

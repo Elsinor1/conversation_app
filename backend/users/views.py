@@ -106,8 +106,13 @@ class LanguageLevelsAPIView(views.APIView):
         """Create a language level for the authenticated user"""
         user = request.user
         data = JSONParser().parse(request)
+        print(f"Received data: {data}")
         data['user'] = user.id  
+        print(f"Data with user: {data}")
         serializer = LanguageLevelSerializer(data=data)
+        print(f"Serializer is valid: {serializer.is_valid()}")
+        if not serializer.is_valid():
+            print(f"Serializer errors: {serializer.errors}")
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)

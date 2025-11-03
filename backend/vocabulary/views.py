@@ -25,7 +25,7 @@ class UserVocabularyWordViewSet(GenericViewSet, ListModelMixin, RetrieveModelMix
         for the currently authenticated user.
         """
         user = self.request.user
-        return VocabularyWord.objects.filter(user=user).prefetch_related('level', 'theme')
+        return VocabularyWord.objects.filter(creator=user).prefetch_related('level', 'theme')
 
 class GeneralVocabularyWordViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin):
     """

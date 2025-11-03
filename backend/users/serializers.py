@@ -26,8 +26,6 @@ class UserSerializer(serializers.ModelSerializer):
 
 class LanguageLevelSerializer(serializers.ModelSerializer):
     """Serializer for LanguageLevel model"""
-    language = serializers.SerializerMethodField()
-    level = serializers.SerializerMethodField()
 
     class Meta:
         model = LanguageLevel
@@ -36,17 +34,5 @@ class LanguageLevelSerializer(serializers.ModelSerializer):
             "language",
             "level", 
             "progress"
-        )
-    
-    def get_language(self, obj):
-        return {
-            "id": obj.language.id,
-            "name": obj.language.name
-        }
-    
-    def get_level(self, obj):
-        return {
-            "id": obj.level.id,
-            "ABC_value": obj.level.ABC_value,
-            "name": obj.level.name
-        }
+        )    
+  
