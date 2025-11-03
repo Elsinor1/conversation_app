@@ -10,7 +10,6 @@ class VocabularyWordModelSerializer(serializers.ModelSerializer):
             "german_translation",
             "czech_translation",
             "level",
-            "user",
             "theme"
         )   
 

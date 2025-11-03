@@ -29,13 +29,13 @@ export default function Vocabulary({ token }: VocabularyProps) {
   const [vocabularyWords, setVocabularyWords] = useState<VocabularyWord[]>([]);
   const [userVocabularyWords, setUserVocabularyWords] = useState<UserVocabularyWord[]>([]);
   const [themes, setThemes] = useState<VocabularyTheme[]>([]);
-  const [userLanguages, setUserLanguages] = useState<LanguageLevel[]>([]);
+  const [languageLevels, setLanguageLevels] = useState<LanguageLevel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Filter states
   const [selectedLanguage, setSelectedLanguage] = useState<number | null>(null);
-  const [selectedTheme, setSelectedTheme] = useState<number | null>(null);
+  const [selectedTheme, setSelectedTheme] = useState<string | number | null>(null); // Can be UUID string or number
   const [selectedStatus, setSelectedStatus] = useState<LearningStatus | 'all'>('all');
 
   // Dropdown states
@@ -54,11 +54,16 @@ export default function Vocabulary({ token }: VocabularyProps) {
           getUserLanguageLevels(token)
         ]);
         
-        // Ensure we have arrays
+        // Ensure we have arrays (API functions now handle unwrapping)
         setVocabularyWords(Array.isArray(words) ? words : []);
         setUserVocabularyWords(Array.isArray(userWords) ? userWords : []);
         setThemes(Array.isArray(themesData) ? themesData : []);
-        setUserLanguages(Array.isArray(languagesData) ? languagesData : []);
+        setLanguageLevels(Array.isArray(languagesData) ? languagesData : []);
+        
+        console.log('Processed themes:', Array.isArray(themesData) ? themesData : []);
+        console.log('Processed languages:', Array.isArray(languagesData) ? languagesData : []);
+        console.log('First theme sample:', Array.isArray(themesData) && themesData.length > 0 ? themesData[0] : null);
+        console.log('First language sample:', Array.isArray(languagesData) && languagesData.length > 0 ? languagesData[0] : null);
         
         // Set default language if available
         if (Array.isArray(languagesData) && languagesData.length > 0) {
@@ -71,7 +76,7 @@ export default function Vocabulary({ token }: VocabularyProps) {
         setVocabularyWords([]);
         setUserVocabularyWords([]);
         setThemes([]);
-        setUserLanguages([]);
+        setLanguageLevels([]);
       } finally {
         setLoading(false);
       }
@@ -79,6 +84,23 @@ export default function Vocabulary({ token }: VocabularyProps) {
 
     fetchData();
   }, [token]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.dropdown-container')) {
+        setLanguageDropdownOpen(false);
+        setThemeDropdownOpen(false);
+        setStatusDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleStatusChange = async (vocabularyWordId: number, newStatus: LearningStatus) => {
     try {
@@ -130,13 +152,15 @@ export default function Vocabulary({ token }: VocabularyProps) {
   };
 
   const filteredWords = (Array.isArray(vocabularyWords) ? vocabularyWords : []).filter(word => {
-    // Filter by language
-    if (selectedLanguage !== null && word.level.id !== selectedLanguage) {
-      return false;
+    // Filter by language - check if word's level matches any language level with selected language
+    if (selectedLanguage !== null) {
+      // This filter might need adjustment based on your data structure
+      // If you want to filter by language, you'd need language info in vocabulary words
+      // For now, skipping this filter as word.level.id is a level ID, not language ID
     }
 
     // Filter by theme
-    if (selectedTheme && !word.theme.some(theme => theme.id === selectedTheme)) {
+    if (selectedTheme && !word.theme.some(theme => String(theme.id) === String(selectedTheme))) {
       return false;
     }
 
@@ -149,8 +173,12 @@ export default function Vocabulary({ token }: VocabularyProps) {
     return true;
   });
 
-  const selectedLanguageName = userLanguages.find(lang => lang.language.id === selectedLanguage)?.language.name || 'All Languages';
-  const selectedThemeName = themes.find(theme => theme.id === selectedTheme)?.title || 'All Themes';
+  const selectedLanguageName = selectedLanguage !== null 
+    ? languageLevels.find(lang => lang.language.id === selectedLanguage)?.language.name || 'All Languages'
+    : 'All Languages';
+  const selectedThemeName = selectedTheme !== null
+    ? themes.find(theme => String(theme.id) === String(selectedTheme))?.title || 'All Themes'
+    : 'All Themes';
   const statusLabels = {
     all: 'All Status',
     not_learned: 'Not Learned',
@@ -202,7 +230,7 @@ export default function Vocabulary({ token }: VocabularyProps) {
         <div className="bg-gray-50 rounded-lg p-6 mb-8">
           <div className="flex flex-wrap gap-4 items-center">
             {/* Language Dropdown */}
-            <div className="relative">
+            <div className="relative dropdown-container">
               <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
               <div className="relative">
                 <button
@@ -223,25 +251,31 @@ export default function Vocabulary({ token }: VocabularyProps) {
                     >
                       All Languages
                     </button>
-                    {userLanguages.map(language => (
-                      <button
-                        key={language.language.id}
-                        onClick={() => {
-                          setSelectedLanguage(language.language.id);
-                          setLanguageDropdownOpen(false);
-                        }}
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 last:rounded-b-lg"
-                      >
-                        {language.language.name}
-                      </button>
-                    ))}
+                    {languageLevels.length > 0 ? (
+                      languageLevels.map(language => (
+                        <button
+                          key={language.id}
+                          onClick={() => {
+                            setSelectedLanguage(language.language.id);
+                            setLanguageDropdownOpen(false);
+                          }}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 last:rounded-b-lg"
+                        >
+                          {language.language.name}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-2 text-gray-500 text-sm">
+                        No languages available ({languageLevels.length} items)
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
 
             {/* Theme Dropdown */}
-            <div className="relative">
+            <div className="relative dropdown-container">
               <label className="block text-sm font-medium text-gray-700 mb-2">Theme</label>
               <div className="relative">
                 <button
@@ -262,25 +296,30 @@ export default function Vocabulary({ token }: VocabularyProps) {
                     >
                       All Themes
                     </button>
-                    {themes.map(theme => (
-                      <button
-                        key={theme.id}
-                        onClick={() => {
-                          setSelectedTheme(theme.id);
-                          setThemeDropdownOpen(false);
-                        }}
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 last:rounded-b-lg"
-                      >
-                        {theme.title}
-                      </button>
-                    ))}
+                    {themes.length > 0 ? (
+                      themes.map(theme => (
+                        <button
+                          key={theme.id}
+                          onClick={() => {
+                            console.log('Theme clicked:', theme, 'Setting theme ID to:', theme.id);
+                            setSelectedTheme(theme.id);
+                            setThemeDropdownOpen(false);
+                          }}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 last:rounded-b-lg"
+                        >
+                          {theme.title || `Theme ${theme.id}`}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-2 text-gray-500 text-sm">No themes available</div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
 
             {/* Status Filter */}
-            <div className="relative">
+            <div className="relative dropdown-container">
               <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
               <div className="relative">
                 <button

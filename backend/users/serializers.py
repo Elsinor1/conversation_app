@@ -1,6 +1,6 @@
 from rest_framework.fields import CharField, EmailField
 from rest_framework import serializers
-from .models import User, LanguageLevel
+from .models import User, LanguageLevel, Language, Level
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -23,14 +23,34 @@ class UserSerializer(serializers.ModelSerializer):
             email=validated_data.get("email"),
             password=validated_data["password"]
         )
+class LanguageSerializer(serializers.ModelSerializer):
+    """Serializer for Language model"""
+    class Meta:
+        model = Language
+        fields = (
+            "id",
+            "name"
+        )
+class LevelSerializer(serializers.ModelSerializer):
+    """Serializer for Level model"""
+    class Meta:
+        model = Level
+        fields = (
+            "id",
+            "ABC_value",
+            "name"
+        )
 
 class LanguageLevelSerializer(serializers.ModelSerializer):
     """Serializer for LanguageLevel model"""
+    language = LanguageSerializer()
+    level = LevelSerializer()
 
     class Meta:
         model = LanguageLevel
         fields = (
             "id",
+            "user",
             "language",
             "level", 
             "progress"

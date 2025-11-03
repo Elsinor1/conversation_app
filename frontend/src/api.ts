@@ -72,7 +72,30 @@ export async function getUserLanguageLevels(token: string): Promise<LanguageLeve
     const text = await response.text().catch(() => '')
     throw new Error(`Failed to fetch language levels (${response.status}): ${text || response.statusText}`)
   }
-  return response.json()
+  const data = await response.json()
+  console.log('Language levels API response:', data)
+  
+  // Handle API response that may be wrapped in {data: [...]}
+  let levelsArray = Array.isArray(data) ? data : (data?.data || [])
+  
+  // Normalize JSON:API format if needed: {type: 'LanguageLevel', id: 'uuid', attributes: {...}}
+  // to {id: number, language: {id, name}, level: {id, ABC_value, name}, progress: number}
+  levelsArray = levelsArray.map((level: any) => {
+    if (level.attributes) {
+      // JSON:API format - normalize it
+      const attrs = level.attributes
+      return {
+        id: level.id,
+        language: attrs.language || (attrs.language_id ? { id: attrs.language_id, name: attrs.language_name } : null),
+        level: attrs.level || (attrs.level_id ? { id: attrs.level_id, ABC_value: attrs.level_abc, name: attrs.level_name } : null),
+        progress: attrs.progress || 0
+      }
+    }
+    // Already in expected format
+    return level
+  })
+  
+  return levelsArray
 }
 
 export type LoginParams = { username: string; password: string }
@@ -151,14 +174,22 @@ export async function getPracticeSetupData(token: string): Promise<{themes: JSON
 }
 
 // Dashboard API types
+export type Language = {
+  id: number
+  name: string
+}
+
+export type Level = {
+  id: number
+  ABC_value: string
+  name: string
+}
+
 export type LanguageLevel = {
-  id: string
-  language: string
-  level: string
+  id: number
+  language: Language
+  level: Level
   progress?: number
-  language_name: string
-  level_name: string
-  level_abc: string
 }
 
 export type DashboardStats = {
@@ -185,16 +216,6 @@ export async function getDashboardStats(token: string): Promise<{data: Dashboard
 }
 
 // Language and Level API types
-export type Language = {
-  id: string
-  name: string
-}
-
-export type Level = {
-  id: string
-  ABC_value: string
-  name: string
-}
 
 export async function getLanguages(token: string): Promise<Language[]> {
   const response = await fetch('/api/languages/', {
@@ -253,15 +274,8 @@ export async function createLanguageLevel(token: string, languageId: string, lev
 
 // Language-specific stats types
 export type LanguageStats = {
-  language: {
-    id: number
-    name: string
-  }
-  level: {
-    id: number
-    ABC_value: string
-    name: string
-  }
+  language: Language
+  level: Level
   vocabularyPractices: number
   speechPractices: number
   vocabularyWords: number
@@ -313,7 +327,7 @@ export type UserVocabularyWord = {
 }
 
 export type VocabularyTheme = {
-  id: number
+  id: string | number  // Can be UUID string or number
   title: string
   description: string
 }
@@ -331,7 +345,9 @@ export async function getVocabularyWords(token: string): Promise<VocabularyWord[
     const text = await response.text().catch(() => '')
     throw new Error(`Failed to fetch vocabulary words (${response.status}): ${text || response.statusText}`)
   }
-  return response.json()
+  const data = await response.json()
+  // console.log('Vocabulary words API response:', data)
+  return data
 }
 
 export async function getUserVocabularyWords(token: string): Promise<UserVocabularyWord[]> {
@@ -404,7 +420,28 @@ export async function getThemes(token: string): Promise<VocabularyTheme[]> {
     const text = await response.text().catch(() => '')
     throw new Error(`Failed to fetch themes (${response.status}): ${text || response.statusText}`)
   }
-  return response.json()
+  const data = await response.json()
+  console.log('Themes API response:', data)
+  
+  // Handle API response that may be wrapped in {data: [...]}
+  let themesArray = Array.isArray(data) ? data : (data?.data || [])
+  
+  // Normalize JSON:API format: {type: 'Theme', id: 'uuid', attributes: {title: '...'}}
+  // to {id: 'uuid', title: '...'}
+  themesArray = themesArray.map((theme: any) => {
+    if (theme.attributes) {
+      // JSON:API format
+      return {
+        id: theme.id,
+        title: theme.attributes.title || theme.attributes.name || '',
+        description: theme.attributes.description || ''
+      }
+    }
+    // Already in expected format
+    return theme
+  })
+  
+  return themesArray
 }
 
 
