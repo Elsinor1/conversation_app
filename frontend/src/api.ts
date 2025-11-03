@@ -175,18 +175,18 @@ export async function getPracticeSetupData(token: string): Promise<{themes: JSON
 
 // Dashboard API types
 export type Language = {
-  id: number
+  id: string
   name: string
 }
 
 export type Level = {
-  id: number
+  id: string
   ABC_value: string
   name: string
 }
 
 export type LanguageLevel = {
-  id: number
+  id: string
   language: Language
   level: Level
   progress?: number
@@ -346,8 +346,30 @@ export async function getVocabularyWords(token: string): Promise<VocabularyWord[
     throw new Error(`Failed to fetch vocabulary words (${response.status}): ${text || response.statusText}`)
   }
   const data = await response.json()
-  // console.log('Vocabulary words API response:', data)
-  return data
+  console.log('Vocabulary words API response:', data)
+  
+  // Handle API response that may be wrapped in {data: [...]}
+  let wordsArray = Array.isArray(data) ? data : (data?.data || [])
+  
+  // Normalize JSON:API format: {type: 'VocabularyWord', id: 'uuid', attributes: {...}}
+  // to {id: number, word: string, german_translation: string, czech_translation: string, level: {...}, theme: [...]}
+  wordsArray = wordsArray.map((word: any) => {
+    if (word.attributes) {
+      // JSON:API format - normalize it
+      return {
+        id: word.id,
+        word: word.attributes.word,
+        german_translation: word.attributes.german_translation,
+        czech_translation: word.attributes.czech_translation,
+        level: word.attributes.level,
+        theme: word.attributes.theme || []
+      }
+    }
+    // Already in expected format
+    return word
+  })
+  
+  return wordsArray
 }
 
 export async function getUserVocabularyWords(token: string): Promise<UserVocabularyWord[]> {
@@ -362,7 +384,7 @@ export async function getUserVocabularyWords(token: string): Promise<UserVocabul
     const text = await response.text().catch(() => '')
     throw new Error(`Failed to fetch user vocabulary words (${response.status}): ${text || response.statusText}`)
   }
-  return response.json()
+  return response.json().data
 }
 
 export async function updateUserVocabularyWordStatus(
@@ -382,7 +404,7 @@ export async function updateUserVocabularyWordStatus(
     const text = await response.text().catch(() => '')
     throw new Error(`Failed to update vocabulary word status (${response.status}): ${text || response.statusText}`)
   }
-  return response.json()
+  return response.json().data
 }
 
 export async function createUserVocabularyWordStatus(
@@ -405,7 +427,7 @@ export async function createUserVocabularyWordStatus(
     const text = await response.text().catch(() => '')
     throw new Error(`Failed to create vocabulary word status (${response.status}): ${text || response.statusText}`)
   }
-  return response.json()
+  return response.json().data
 }
 
 export async function getThemes(token: string): Promise<VocabularyTheme[]> {
@@ -421,27 +443,9 @@ export async function getThemes(token: string): Promise<VocabularyTheme[]> {
     throw new Error(`Failed to fetch themes (${response.status}): ${text || response.statusText}`)
   }
   const data = await response.json()
-  console.log('Themes API response:', data)
+  console.log('Themes API response:', typeof data.data, data)
   
-  // Handle API response that may be wrapped in {data: [...]}
-  let themesArray = Array.isArray(data) ? data : (data?.data || [])
-  
-  // Normalize JSON:API format: {type: 'Theme', id: 'uuid', attributes: {title: '...'}}
-  // to {id: 'uuid', title: '...'}
-  themesArray = themesArray.map((theme: any) => {
-    if (theme.attributes) {
-      // JSON:API format
-      return {
-        id: theme.id,
-        title: theme.attributes.title || theme.attributes.name || '',
-        description: theme.attributes.description || ''
-      }
-    }
-    // Already in expected format
-    return theme
-  })
-  
-  return themesArray
+  return data.data
 }
 
 

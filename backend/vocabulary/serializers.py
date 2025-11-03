@@ -1,7 +1,12 @@
 from rest_framework import serializers
 from .models import VocabularyWord, VocabularyPractice, VocabularyList, UserVocabularyWord
+from users.serializers import LevelSerializer
+from conversations.serializers import ThemeModelSerializerIdTitleOnly
 
 class VocabularyWordModelSerializer(serializers.ModelSerializer):
+    level = LevelSerializer(read_only=True)
+    theme = ThemeModelSerializerIdTitleOnly(many=True, read_only=True)
+
     class Meta:
         model = VocabularyWord
         fields = (

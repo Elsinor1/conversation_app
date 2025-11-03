@@ -34,7 +34,7 @@ export default function Vocabulary({ token }: VocabularyProps) {
   const [error, setError] = useState<string | null>(null);
 
   // Filter states
-  const [selectedLanguage, setSelectedLanguage] = useState<number | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<string | number | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<string | number | null>(null); // Can be UUID string or number
   const [selectedStatus, setSelectedStatus] = useState<LearningStatus | 'all'>('all');
 
@@ -64,6 +64,8 @@ export default function Vocabulary({ token }: VocabularyProps) {
         console.log('Processed languages:', Array.isArray(languagesData) ? languagesData : []);
         console.log('First theme sample:', Array.isArray(themesData) && themesData.length > 0 ? themesData[0] : null);
         console.log('First language sample:', Array.isArray(languagesData) && languagesData.length > 0 ? languagesData[0] : null);
+        console.log('Vocabulary words:', Array.isArray(words) ? words : []);
+        console.log('User vocabulary words:', Array.isArray(userWords) ? userWords : []);
         
         // Set default language if available
         if (Array.isArray(languagesData) && languagesData.length > 0) {

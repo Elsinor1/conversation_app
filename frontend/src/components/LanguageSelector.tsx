@@ -28,6 +28,7 @@ export default function LanguageSelector({ token, onLanguageAdded, onClose, user
         const [languagesData, levelsData] = await Promise.all([
           getLanguages(token),
           getLevels(token)
+          
         ])
         
         console.log('Languages data:', languagesData)

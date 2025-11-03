@@ -25,6 +25,14 @@ class ThemeModelSerializer(serializers.ModelSerializer):
 			"description",
 		)
 
+class ThemeModelSerializerIdTitleOnly(serializers.ModelSerializer):
+	"""Serializer for themes with only id and title"""
+	class Meta:
+		model = Theme
+		fields = (
+			"id",
+			"title",
+		)
 
 class ScenarioNestedSerializer(serializers.ModelSerializer):
 	"""Serializer for scenarios nested within themes"""
