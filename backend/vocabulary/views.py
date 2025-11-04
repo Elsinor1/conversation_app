@@ -6,6 +6,7 @@ from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateMode
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.parsers import JSONParser
+from rest_framework.renderers import JSONRenderer
 from django.http import JsonResponse
 from json import JSONDecodeError
 from rest_framework import status
@@ -13,19 +14,27 @@ from rest_framework.response import Response
 
 class UserVocabularyWordViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin,):
     """
-    Simple ViewSet for listing, creating, updating and deleting vocabulary words
+    Simple ViewSet for listing, creating, updating and deleting user vocabulary words
     """
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
-    serializer_class = VocabularyWordModelSerializer
+    serializer_class = UserVocabularyWordModelSerializer
+    parser_classes = [JSONParser]  # Use regular JSON instead of JSON:API
+    renderer_classes = [JSONRenderer]  # Return regular JSON instead of JSON:API
     
     def get_queryset(self):
         """
-        This view should return a list of all the VocabularyWords
+        This view should return a list of all the UserVocabularyWords
         for the currently authenticated user.
         """
         user = self.request.user
-        return VocabularyWord.objects.filter(creator=user).prefetch_related('level', 'theme')
+        return UserVocabularyWord.objects.filter(user=user).prefetch_related('vocabulary_word', 'vocabulary_word__level')
+    
+    def perform_create(self, serializer):
+        """
+        Set the user to the current authenticated user when creating a new UserVocabularyWord.
+        """
+        serializer.save(user=self.request.user)
 
 class GeneralVocabularyWordViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin):
     """
@@ -50,7 +59,7 @@ class VocabularyListViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, 
         for the currently authenticated user.
         """
         user = self.request.user
-        return VocabularyList.objects.filter(user=user).prefetch_related('language', 'vocabulary_words')
+        return VocabularyList.objects.filter(user=user).prefetch_related('language', 'user_vocabulary_words')
 
 class UserVocabularyWordStatusViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin):
     """

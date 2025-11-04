@@ -322,6 +322,7 @@ export type UserVocabularyWord = {
   user: number
   vocabulary_word: VocabularyWord
   learning_status: 'not_learned' | 'in_progress' | 'learned'
+  is_selected_for_practice?: boolean
   created: string
   modified: string
 }
@@ -384,7 +385,8 @@ export async function getUserVocabularyWords(token: string): Promise<UserVocabul
     const text = await response.text().catch(() => '')
     throw new Error(`Failed to fetch user vocabulary words (${response.status}): ${text || response.statusText}`)
   }
-  return response.json().data
+  const data = await response.json()
+  return data.data
 }
 
 export async function updateUserVocabularyWordStatus(
@@ -404,7 +406,8 @@ export async function updateUserVocabularyWordStatus(
     const text = await response.text().catch(() => '')
     throw new Error(`Failed to update vocabulary word status (${response.status}): ${text || response.statusText}`)
   }
-  return response.json().data
+  const data = await response.json()
+  return data.data
 }
 
 export async function createUserVocabularyWordStatus(
@@ -427,7 +430,8 @@ export async function createUserVocabularyWordStatus(
     const text = await response.text().catch(() => '')
     throw new Error(`Failed to create vocabulary word status (${response.status}): ${text || response.statusText}`)
   }
-  return response.json().data
+  const data = await response.json()
+  return data.data
 }
 
 export async function getThemes(token: string): Promise<VocabularyTheme[]> {
@@ -446,6 +450,29 @@ export async function getThemes(token: string): Promise<VocabularyTheme[]> {
   console.log('Themes API response:', typeof data.data, data)
   
   return data.data
+}
+
+export async function updateVocabularySelection(
+  token: string,
+  selectedWordIds: number[],
+  unselectedWordIds: number[]
+): Promise<{selected_count: number, unselected_count: number, message: string}> {
+  const response = await fetch('/api/vocabulary-lists/update-selection/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    },
+    body: JSON.stringify({
+      selected_word_ids: selectedWordIds,
+      unselected_word_ids: unselectedWordIds
+    }),
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to update vocabulary selection (${response.status}): ${text || response.statusText}`)
+  }
+  return response.json()
 }
 
 

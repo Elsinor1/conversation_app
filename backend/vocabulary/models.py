@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 from utils.model_abstracts import Model
 from users.models import Language, Level, User
 from conversations.models import Theme
@@ -41,20 +42,15 @@ class UserVocabularyWord(Model, TimeStampedModel):
                     vocabulary_word: model:vocabulary.VocabularyWord
                     learning_status: str (choices: not_learned, in_progress, learned)
     """
-    LEARNING_STATUS_CHOICES = [
-        ('not_learned', 'Not Learned'),
-        ('in_progress', 'In Progress'),
-        ('learned', 'Learned'),
-    ]
-    
+      
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="user")
     vocabulary_word = models.ForeignKey(VocabularyWord, on_delete=models.CASCADE, verbose_name="vocabulary_word")
-    learning_status = models.CharField(
-        max_length=20, 
-        choices=LEARNING_STATUS_CHOICES, 
-        default='not_learned',
+    learning_status = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
         verbose_name="learning_status"
     )
+    is_selected_for_practice = models.BooleanField(default=False)
     
     class Meta:
         verbose_name_plural = "User vocabulary words"
@@ -73,7 +69,7 @@ class VocabularyList(Model):
     name = models.CharField(max_length=255)
     language = models.ForeignKey(Language, on_delete=models.CASCADE, verbose_name="languages")
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="users")
-    vocabulary_words = models.ManyToManyField(UserVocabularyWord, verbose_name="vocabulary_words")
+    user_vocabulary_word = models.ManyToManyField(UserVocabularyWord, verbose_name="user_vocabulary_words")
     
     class Meta:
         verbose_name_plural = "Vocabulary lists"

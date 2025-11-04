@@ -7,11 +7,11 @@ app_name = 'vocabulary'
 
 # Router for viewset-based views
 router = DefaultRouter()
-router.register(r'vocabulary-words', views.GeneralVocabularyWordViewSet, basename='vocabulary-words')
-router.register(r'user-vocabulary-words', views.UserVocabularyWordViewSet, basename='user-vocabulary-words')
-router.register(r'vocabulary-lists', views.VocabularyListViewSet, basename='vocabulary-lists')
-router.register(r'user-vocabulary-status', views.UserVocabularyWordStatusViewSet, basename='user-vocabulary-status')
-router.register(r'vocabulary-practices', views.VocabularyPracticeViewSet, basename='vocabulary-practices')
+router.register(r'vocabulary-word', views.GeneralVocabularyWordViewSet, basename='vocabulary-word')
+router.register(r'user-vocabulary-word', views.UserVocabularyWordViewSet, basename='user-vocabulary-word')
+router.register(r'vocabulary-list', views.VocabularyListViewSet, basename='vocabulary-list')
+router.register(r'user-vocabulary-word-status', views.UserVocabularyWordStatusViewSet, basename='user-vocabulary-word-status')
+router.register(r'vocabulary-practice', views.VocabularyPracticeViewSet, basename='vocabulary-practice')
 
 urlpatterns = router.urls
 

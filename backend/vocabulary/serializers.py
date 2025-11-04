@@ -26,7 +26,7 @@ class VocabularyListModelSerializer(serializers.ModelSerializer):
             "name",
             "language",
             "user",
-            "vocabulary_words"
+            "user_vocabulary_word"
         )
 
 class VocabularyPracticeModelSerializer(serializers.ModelSerializer):
@@ -39,8 +39,7 @@ class VocabularyPracticeModelSerializer(serializers.ModelSerializer):
         )
 
 class UserVocabularyWordModelSerializer(serializers.ModelSerializer):
-    vocabulary_word = VocabularyWordModelSerializer(read_only=True)
-    vocabulary_word_id = serializers.IntegerField(write_only=True)
+    vocabulary_word = serializers.PrimaryKeyRelatedField(queryset=VocabularyWord.objects.all(), required=True)
     
     class Meta:
         model = UserVocabularyWord
@@ -48,9 +47,11 @@ class UserVocabularyWordModelSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "vocabulary_word",
-            "vocabulary_word_id",
             "learning_status",
-            "created",
-            "modified"
+            "is_selected_for_practice"
         )
-        read_only_fields = ("user", "created", "modified")
+        extra_kwargs = {
+            'learning_status': {'required': False},
+            'is_selected_for_practice': {'required': False},
+            'user': {'required': False}  # Will be set by perform_create
+        }

@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   getVocabularyWords, 
   getUserVocabularyWords, 
-  updateUserVocabularyWordStatus, 
-  createUserVocabularyWordStatus,
+  updateVocabularySelection,
   getThemes,
   getUserLanguageLevels,
   type VocabularyWord, 
@@ -12,12 +11,10 @@ import {
   type LanguageLevel 
 } from '../api';
 import { 
-  FaCheckCircle, 
-  FaClock, 
-  FaTimesCircle, 
   FaChevronDown,
   FaBookOpen 
 } from 'react-icons/fa';
+import VocabularyWordCard from './VocabularyWordCard';
 
 interface VocabularyProps {
   token: string;
@@ -37,6 +34,10 @@ export default function Vocabulary({ token }: VocabularyProps) {
   const [selectedLanguage, setSelectedLanguage] = useState<string | number | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<string | number | null>(null); // Can be UUID string or number
   const [selectedStatus, setSelectedStatus] = useState<LearningStatus | 'all'>('all');
+
+  // Selection state for words to mark as learned
+  const [selectedWordIds, setSelectedWordIds] = useState<Set<number>>(new Set());
+  const [saving, setSaving] = useState(false);
 
   // Dropdown states
   const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
@@ -104,52 +105,75 @@ export default function Vocabulary({ token }: VocabularyProps) {
     };
   }, []);
 
-  const handleStatusChange = async (vocabularyWordId: number, newStatus: LearningStatus) => {
-    try {
-      const existingUserWord = userVocabularyWords.find(
-        uw => uw.vocabulary_word.id === vocabularyWordId
-      );
-
-      if (existingUserWord) {
-        // Update existing status
-        const updated = await updateUserVocabularyWordStatus(token, existingUserWord.id, newStatus);
-        setUserVocabularyWords(prev => 
-          prev.map(uw => uw.id === existingUserWord.id ? updated : uw)
-        );
-      } else {
-        // Create new status
-        const newUserWord = await createUserVocabularyWordStatus(token, vocabularyWordId, newStatus);
-        setUserVocabularyWords(prev => [...prev, newUserWord]);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update word status');
-    }
-  };
-
   const getWordStatus = (vocabularyWordId: number): LearningStatus => {
     const userWord = userVocabularyWords.find(uw => uw.vocabulary_word.id === vocabularyWordId);
     return userWord?.learning_status || 'not_learned';
   };
 
-  const getStatusIcon = (status: LearningStatus) => {
+  // Convert learning status string to number (0-100)
+  const getLearningStatusNumber = (vocabularyWordId: number): number => {
+    const status = getWordStatus(vocabularyWordId);
     switch (status) {
-      case 'learned':
-        return <FaCheckCircle className="text-green-500" />;
-      case 'in_progress':
-        return <FaClock className="text-yellow-500" />;
       case 'not_learned':
-        return <FaTimesCircle className="text-gray-400" />;
+        return 0;
+      case 'in_progress':
+        return 50;
+      case 'learned':
+        return 100;
+      default:
+        return 0;
     }
   };
 
-  const getStatusColor = (status: LearningStatus) => {
-    switch (status) {
-      case 'learned':
-        return 'bg-green-100 border-green-300';
-      case 'in_progress':
-        return 'bg-yellow-100 border-yellow-300';
-      case 'not_learned':
-        return 'bg-gray-100 border-gray-300';
+  // Handle card click - toggle selection
+  const handleCardClick = (vocabularyWordId: number) => {
+    setSelectedWordIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(vocabularyWordId)) {
+        newSet.delete(vocabularyWordId);
+      } else {
+        newSet.add(vocabularyWordId);
+      }
+      return newSet;
+    });
+  };
+
+  // Handle save button - update selection for practice
+  const handleSave = async () => {
+    if (selectedWordIds.size === 0) {
+      return; // Nothing to save
+    }
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      // Get currently selected words for practice (from existing userVocabularyWords)
+      const currentlySelectedWordIds = new Set(
+        userVocabularyWords
+          .filter(uw => uw.is_selected_for_practice)
+          .map(uw => uw.vocabulary_word.id)
+      );
+
+      // Determine which words to select and unselect
+      const selectedWordIdsArray = Array.from(selectedWordIds);
+      const unselectedWordIdsArray = Array.from(currentlySelectedWordIds).filter(
+        id => !selectedWordIds.has(id)
+      );
+
+      // Call the backend to update selection
+      await updateVocabularySelection(token, selectedWordIdsArray, unselectedWordIdsArray);
+
+      // Refresh user vocabulary words to get updated data
+      const refreshedUserWords = await getUserVocabularyWords(token);
+      setUserVocabularyWords(Array.isArray(refreshedUserWords) ? refreshedUserWords : []);
+
+      // Clear selection after save
+      setSelectedWordIds(new Set());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update vocabulary selection');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -340,9 +364,8 @@ export default function Vocabulary({ token }: VocabularyProps) {
                           setSelectedStatus(value as LearningStatus | 'all');
                           setStatusDropdownOpen(false);
                         }}
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg flex items-center gap-2"
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg"
                       >
-                        {value !== 'all' && getStatusIcon(value as LearningStatus)}
                         {label}
                       </button>
                     ))}
@@ -350,91 +373,36 @@ export default function Vocabulary({ token }: VocabularyProps) {
                 )}
               </div>
             </div>
+
+            {/* Start Practice Button */}
+            <div className="flex items-end">
+              <button
+                onClick={handleSave}
+                disabled={selectedWordIds.size === 0 || saving}
+                className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                  selectedWordIds.size === 0 || saving
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                {saving ? 'Saving...' : `Start practice ${selectedWordIds.size} words selected`}
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Vocabulary Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredWords.map(word => {
-            const wordStatus = getWordStatus(word.id);
-            return (
-              <div
-                key={word.id}
-                className={`border-2 rounded-lg p-6 transition-all duration-200 hover:shadow-lg ${getStatusColor(wordStatus)}`}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-2">{word.word}</h3>
-                    <div className="space-y-1">
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">German:</span> {word.german_translation}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Czech:</span> {word.czech_translation}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    {getStatusIcon(wordStatus)}
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                    {word.level.ABC_value}
-                  </span>
-                </div>
-
-                <div className="mb-4">
-                  <div className="text-xs text-gray-500 mb-2">Themes:</div>
-                  <div className="flex flex-wrap gap-1">
-                    {word.theme.map(theme => (
-                      <span
-                        key={theme.id}
-                        className="inline-block bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded"
-                      >
-                        {theme.title}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Status Change Buttons */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleStatusChange(word.id, 'not_learned')}
-                    className={`flex-1 px-3 py-2 text-xs rounded transition-colors ${
-                      wordStatus === 'not_learned'
-                        ? 'bg-gray-200 text-gray-800'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    Not Learned
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange(word.id, 'in_progress')}
-                    className={`flex-1 px-3 py-2 text-xs rounded transition-colors ${
-                      wordStatus === 'in_progress'
-                        ? 'bg-yellow-200 text-yellow-800'
-                        : 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
-                    }`}
-                  >
-                    In Progress
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange(word.id, 'learned')}
-                    className={`flex-1 px-3 py-2 text-xs rounded transition-colors ${
-                      wordStatus === 'learned'
-                        ? 'bg-green-200 text-green-800'
-                        : 'bg-green-100 text-green-600 hover:bg-green-200'
-                    }`}
-                  >
-                    Learned
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          {filteredWords.map(word => (
+            <VocabularyWordCard
+              key={word.id}
+              word={word}
+              selectedLanguage={selectedLanguageName !== 'All Languages' ? selectedLanguageName : null}
+              learningStatus={getLearningStatusNumber(word.id)}
+              isSelectedForLearning={selectedWordIds.has(word.id)}
+              onClick={() => handleCardClick(word.id)}
+            />
+          ))}
         </div>
 
         {filteredWords.length === 0 && (

@@ -55,3 +55,22 @@ Continue chat
 curl -X POST http://127.0.0.1:8000/chat_message/ \
   -H "Authorization: Token e3dd39392dc0e65ae9049040a9233c40c035c54b" -H "Content-Type: application/json" \
   -d '{"chat_id":"715426bf-1418-40cc-ac13-3abbee921306","message":"Hallo, Ich bin Martin Lokvenc, I suche einen kleinen Ausflug in Mallorca Stadt!"}'
+
+Vocabulary word
+curl -X GET http://127.0.0.1:8000/vocabulary-word/ \
+  -H "Authorization: Token e3dd39392dc0e65ae9049040a9233c40c035c54b" \
+  -H "Content-Type: application/json"
+
+Vocabulary word example: 5845aa0e-2d83-421e-ad8e-f12c6221683d
+
+User Vocabulary word
+curl -X POST http://127.0.0.1:8000/user-vocabulary-word/ \
+  -H "Authorization: Token e3dd39392dc0e65ae9049040a9233c40c035c54b" \
+  -H "Content-Type: application/json" \
+  -d '{"vocabulary_word":"5845aa0e-2d83-421e-ad8e-f12c6221683d"}'
+
+
+Vocabulary list
+  curl -X GET http://127.0.0.1:8000/vocabulary-list/ \
+  -H "Authorization: Token e3dd39392dc0e65ae9049040a9233c40c035c54b" \
+  -H "Content-Type: application/json"
