@@ -6,7 +6,6 @@ import {
   getVocabularyLists,
   getThemes,
   getUserLanguageLevels,
-  getUserVocabularyWordIdsFromVocabularyWordIds,
   type VocabularyWord, 
   type UserVocabularyWord, 
   type VocabularyTheme,
@@ -17,6 +16,7 @@ import {
   FaBookOpen 
 } from 'react-icons/fa';
 import VocabularyWordCard from './VocabularyWordCard';
+import VocabularyPractice from './VocabularyPractice';
 
 interface VocabularyProps {
   token: string;
@@ -41,6 +41,11 @@ export default function Vocabulary({ token }: VocabularyProps) {
   const [selectedWordIds, setSelectedWordIds] = useState<Set<number>>(new Set());
   const [selectedUserVocabularyWordIds, setSelectedUserVocabularyWordIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  
+  // Practice mode state
+  const [isPracticeMode, setIsPracticeMode] = useState(false);
+  const [practiceWords, setPracticeWords] = useState<VocabularyWord[]>([]);
+  const [practiceUserWords, setPracticeUserWords] = useState<UserVocabularyWord[]>([]);
 
   // Dropdown states
   const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
@@ -202,22 +207,19 @@ export default function Vocabulary({ token }: VocabularyProps) {
     });
   };
 
-  // Handle save button - update selection for practice
-  const handleSave = async () => {
-    console.log('handleSave called');
+  // Handle save button - update selection for practice and start practice
+  const handleStartPractice = async () => {
+    console.log('handleStartPractice called');
     console.log('selectedWordIds:', selectedWordIds.size, Array.from(selectedWordIds));
     console.log('selectedUserVocabularyWordIds:', selectedUserVocabularyWordIds.size, Array.from(selectedUserVocabularyWordIds));
     if (selectedWordIds.size === 0 && selectedUserVocabularyWordIds.size === 0) {
       console.error('No words or user vocabulary words selected.');
-      return; // Nothing to save
+      return; // Nothing to practice
     }
 
     try {
       setSaving(true);
       setError(null);
-
-      // Convert vocabulary word IDs to user vocabulary word IDs first
-      // const userVocabularyWords = await getUserVocabularyWordIdsFromVocabularyWordIds(token, Array.from(selectedWordIds));
 
       // Get vocabulary list (should be created automatically with language level)
       const vocabularyLists = await getVocabularyLists(token);
@@ -227,7 +229,7 @@ export default function Vocabulary({ token }: VocabularyProps) {
         throw new Error('No vocabulary list found. Vocabulary lists are created automatically when you set up a language level. Please set up a language level first.');
       }
       
-      // Use the first vocabulary list
+      // Use the vocabulary list for the selected language
       const vocabularyList = vocabularyLists.find(vocabularyList => vocabularyList.language.id === selectedLanguage);
       if (!vocabularyList) {
         throw new Error('No vocabulary list found for the selected language.');
@@ -236,8 +238,16 @@ export default function Vocabulary({ token }: VocabularyProps) {
       // Update vocabulary list with PUT
       await updateVocabularySelection(token, vocabularyList.id, Array.from(selectedWordIds), Array.from(selectedUserVocabularyWordIds));
 
+      // Get the actual word objects for practice
+      const wordsForPractice = vocabularyWords.filter(word => selectedWordIds.has(word.id));
+      const userWordsForPractice = userVocabularyWords.filter(userWord => selectedUserVocabularyWordIds.has(userWord.id));
+      
+      setPracticeWords(wordsForPractice);
+      setPracticeUserWords(userWordsForPractice);
+      setIsPracticeMode(true);
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update vocabulary selection');
+      setError(err instanceof Error ? err.message : 'Failed to start practice');
     } finally {
       setSaving(false);
     }
@@ -267,6 +277,18 @@ export default function Vocabulary({ token }: VocabularyProps) {
   const selectedLanguageName = selectedLanguage !== null 
     ? languageLevels.find(lang => lang.language.id === selectedLanguage)?.language.name || 'All Languages'
     : 'All Languages';
+
+  // Show practice component if in practice mode
+  if (isPracticeMode) {
+    return (
+      <VocabularyPractice
+        selectedWords={practiceWords}
+        selectedUserWords={practiceUserWords}
+        learnedLanguage={selectedLanguageName !== 'All Languages' ? selectedLanguageName : 'German'}
+        onClose={() => setIsPracticeMode(false)}
+      />
+    );
+  }
   const selectedThemeName = selectedTheme !== null
     ? themes.find(theme => String(theme.id) === String(selectedTheme))?.title || 'All Themes'
     : 'All Themes';
@@ -449,7 +471,7 @@ export default function Vocabulary({ token }: VocabularyProps) {
                     saving,
                     disabled: (selectedWordIds.size === 0 && selectedUserVocabularyWordIds.size === 0) || saving
                   });
-                  handleSave();
+                  handleStartPractice();
                 }}
                 disabled={(selectedWordIds.size + selectedUserVocabularyWordIds.size === 0) || saving}
                 className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
@@ -458,7 +480,7 @@ export default function Vocabulary({ token }: VocabularyProps) {
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
-                {saving ? 'Saving...' : `Start practice ${selectedWordIds.size + selectedUserVocabularyWordIds.size} words selected`}
+                {saving ? 'Starting...' : `Start practice ${selectedWordIds.size + selectedUserVocabularyWordIds.size} words selected`}
               </button>
             </div>
           </div>
