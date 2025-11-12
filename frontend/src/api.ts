@@ -318,10 +318,10 @@ export type VocabularyWord = {
 }
 
 export type UserVocabularyWord = {
-  id: number
+  id: string  // UUID string
   user: number
   vocabulary_word: VocabularyWord
-  learning_status: 'not_learned' | 'in_progress' | 'learned'
+  learning_status: number  // 0-100, not string enum
   is_selected_for_practice?: boolean
   created: string
   modified: string
@@ -373,8 +373,9 @@ export async function getVocabularyWords(token: string): Promise<VocabularyWord[
   return wordsArray
 }
 
+
 export async function getUserVocabularyWords(token: string): Promise<UserVocabularyWord[]> {
-  const response = await fetch('/api/user-vocabulary-status/', {
+  const response = await fetch('/api/user-vocabulary-word/', {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -386,53 +387,54 @@ export async function getUserVocabularyWords(token: string): Promise<UserVocabul
     throw new Error(`Failed to fetch user vocabulary words (${response.status}): ${text || response.statusText}`)
   }
   const data = await response.json()
-  return data.data
+  console.log('getUserVocabularyWords API response:', data)
+  return data
 }
 
-export async function updateUserVocabularyWordStatus(
-  token: string, 
-  userVocabularyWordId: number, 
-  learningStatus: 'not_learned' | 'in_progress' | 'learned'
-): Promise<UserVocabularyWord> {
-  const response = await fetch(`/api/user-vocabulary-status/${userVocabularyWordId}/`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Token ${token}`,
-    },
-    body: JSON.stringify({ learning_status: learningStatus }),
-  })
-  if (!response.ok) {
-    const text = await response.text().catch(() => '')
-    throw new Error(`Failed to update vocabulary word status (${response.status}): ${text || response.statusText}`)
-  }
-  const data = await response.json()
-  return data.data
-}
+// export async function updateUserVocabularyWordStatus(
+//   token: string, 
+//   userVocabularyWordId: number, 
+//   learningStatus: 'not_learned' | 'in_progress' | 'learned'
+// ): Promise<UserVocabularyWord> {
+//   const response = await fetch(`/api/user-vocabulary-status/${userVocabularyWordId}/`, {
+//     method: 'PATCH',
+//     headers: {
+//       'Content-Type': 'application/json',
+//       Authorization: `Token ${token}`,
+//     },
+//     body: JSON.stringify({ learning_status: learningStatus }),
+//   })
+//   if (!response.ok) {
+//     const text = await response.text().catch(() => '')
+//     throw new Error(`Failed to update vocabulary word status (${response.status}): ${text || response.statusText}`)
+//   }
+//   const data = await response.json()
+//   return data.data
+// }
 
-export async function createUserVocabularyWordStatus(
-  token: string, 
-  vocabularyWordId: number, 
-  learningStatus: 'not_learned' | 'in_progress' | 'learned' = 'not_learned'
-): Promise<UserVocabularyWord> {
-  const response = await fetch('/api/user-vocabulary-status/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Token ${token}`,
-    },
-    body: JSON.stringify({ 
-      vocabulary_word_id: vocabularyWordId,
-      learning_status: learningStatus 
-    }),
-  })
-  if (!response.ok) {
-    const text = await response.text().catch(() => '')
-    throw new Error(`Failed to create vocabulary word status (${response.status}): ${text || response.statusText}`)
-  }
-  const data = await response.json()
-  return data.data
-}
+// export async function createUserVocabularyWordStatus(
+//   token: string, 
+//   vocabularyWordId: number, 
+//   learningStatus: 'not_learned' | 'in_progress' | 'learned' = 'not_learned'
+// ): Promise<UserVocabularyWord> {
+//   const response = await fetch('/api/user-vocabulary-status/', {
+//     method: 'POST',
+//     headers: {
+//       'Content-Type': 'application/json',
+//       Authorization: `Token ${token}`,
+//     },
+//     body: JSON.stringify({ 
+//       vocabulary_word_id: vocabularyWordId,
+//       learning_status: learningStatus 
+//     }),
+//   })
+//   if (!response.ok) {
+//     const text = await response.text().catch(() => '')
+//     throw new Error(`Failed to create vocabulary word status (${response.status}): ${text || response.statusText}`)
+//   }
+//   const data = await response.json()
+//   return data.data
+// }
 
 export async function getThemes(token: string): Promise<VocabularyTheme[]> {
   const response = await fetch('/api/theme/', {
@@ -452,27 +454,74 @@ export async function getThemes(token: string): Promise<VocabularyTheme[]> {
   return data.data
 }
 
+export type VocabularyList = {
+  id: string | number
+  name: string
+  language: Language
+  user: string | number
+  user_vocabulary_word?: (string | number)[]
+}
+
+
+export async function getVocabularyLists(token: string): Promise<VocabularyList[]> {
+  const response = await fetch('/api/vocabulary-list/', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    },
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to fetch vocabulary lists (${response.status}): ${text || response.statusText}`)
+  }
+  const data = await response.json()
+  return Array.isArray(data) ? data : (data?.data || [])
+}
+
 export async function updateVocabularySelection(
   token: string,
-  selectedWordIds: number[],
-  unselectedWordIds: number[]
-): Promise<{selected_count: number, unselected_count: number, message: string}> {
-  const response = await fetch('/api/vocabulary-lists/update-selection/', {
-    method: 'POST',
+  vocabularyListId: string | number,
+  vocabularyWordIds: (string | number)[],
+  userVocabularyWordIds: (string | number)[]
+): Promise<VocabularyList> {
+  const response = await fetch(`/api/vocabulary-list/`, {
+    method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Token ${token}`,
     },
     body: JSON.stringify({
-      selected_word_ids: selectedWordIds,
-      unselected_word_ids: unselectedWordIds
+      vocabulary_word: vocabularyWordIds,
+      user_vocabulary_word: userVocabularyWordIds,
+      id: vocabularyListId
     }),
   })
   if (!response.ok) {
     const text = await response.text().catch(() => '')
     throw new Error(`Failed to update vocabulary selection (${response.status}): ${text || response.statusText}`)
   }
-  return response.json()
+  const data = await response.json()
+  return data
+}
+
+export async function getUserVocabularyWordIdsFromVocabularyWordIds(token: string, vocabularyWordIds: (string | number)[]): Promise<UserVocabularyWord[]> {
+  const response = await fetch('/api/user-vocabulary-word/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    },
+    body: JSON.stringify({
+      vocabulary_word_ids: vocabularyWordIds
+    }),
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to fetch user vocabulary word ids (${response.status}): ${text || response.statusText}`)
+  }
+  const data = await response.json()
+  return data.data
 }
 
 

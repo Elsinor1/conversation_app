@@ -1,7 +1,8 @@
 from django.shortcuts import render
 from .models import VocabularyWord, VocabularyPractice, VocabularyList, UserVocabularyWord
-from .serializers import VocabularyWordModelSerializer, VocabularyPracticeModelSerializer, VocabularyListModelSerializer, UserVocabularyWordModelSerializer
+from .serializers import VocabularyWordModelSerializer, VocabularyPracticeModelSerializer, VocabularyListModelSerializer, UserVocabularyWordModelSerializer, VocabularyListUpdateModelSerializer
 from rest_framework.viewsets import GenericViewSet
+from rest_framework.views import APIView
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
@@ -11,8 +12,9 @@ from django.http import JsonResponse
 from json import JSONDecodeError
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 
-class UserVocabularyWordViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin,):
+class UserVocabularyWordViewSet(GenericViewSet, ListModelMixin, CreateModelMixin, DestroyModelMixin, RetrieveModelMixin, UpdateModelMixin,):
     """
     Simple ViewSet for listing, creating, updating and deleting user vocabulary words
     """
@@ -29,12 +31,34 @@ class UserVocabularyWordViewSet(GenericViewSet, ListModelMixin, RetrieveModelMix
         """
         user = self.request.user
         return UserVocabularyWord.objects.filter(user=user).prefetch_related('vocabulary_word', 'vocabulary_word__level')
-    
-    def perform_create(self, serializer):
+
+    def create(self, request, *args, **kwargs):
         """
-        Set the user to the current authenticated user when creating a new UserVocabularyWord.
+        Create a new UserVocabularyWord.
+        Supports both single and bulk creation
+        If the request data is a list of vocabulary word ids, create a new UserVocabularyWord for each vocabulary word id
+        If the request data is a single vocabulary word id, create a new UserVocabularyWord for the vocabulary word id
         """
-        serializer.save(user=self.request.user)
+        # Check if the request data is a list of vocabulary word ids
+        if isinstance(request.data.get("vocabulary_word_ids"), list):
+            for vocabulary_word_id in request.data.get("vocabulary_word_ids"):
+                data = request.data.copy()
+                data["vocabulary_word"] = vocabulary_word_id
+                data["user"] = self.request.user.id
+                serializer = UserVocabularyWordModelSerializer(data=data)
+                created_user_words = []
+                try:
+                    if serializer.is_valid(raise_exception=True):
+                        serializer.save()
+                        created_user_words.append(serializer.data)
+                except ValidationError:
+                    print(f"Validation error: {serializer.errors}, request data: {request.data}")
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            print(f"Created user word(s): {created_user_words}")
+            return Response(created_user_words, status=status.HTTP_201_CREATED)
+        else:
+            return Response({"error": "Validation error, array expected"}, status=status.HTTP_400_BAD_REQUEST)
+ 
 
 class GeneralVocabularyWordViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin):
     """
@@ -45,37 +69,106 @@ class GeneralVocabularyWordViewSet(GenericViewSet, ListModelMixin, RetrieveModel
     serializer_class = VocabularyWordModelSerializer    
     queryset = VocabularyWord.objects.all().prefetch_related('level', 'theme')
 
-class VocabularyListViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin):
-    """
-    Simple ViewSet for listing, creating, updating and deleting vocabulary lists
-    """
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
-    serializer_class = VocabularyListModelSerializer
+# class VocabularyListViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin):
+#     """
+#     Simple ViewSet for listing, creating, updating and deleting vocabulary word lists
+#     """
+#     authentication_classes = [TokenAuthentication]
+#     permission_classes = [IsAuthenticated]
+#     serializer_class = VocabularyListModelSerializer
+#     parser_classes = [JSONParser]  # Use regular JSON instead of JSON:API
+#     renderer_classes = [JSONRenderer]  # Return regular JSON instead of JSON:API
     
-    def get_queryset(self):
-        """
-        This view should return a list of all the VocabularyLists
-        for the currently authenticated user.
-        """
-        user = self.request.user
-        return VocabularyList.objects.filter(user=user).prefetch_related('language', 'user_vocabulary_words')
+#     def get_queryset(self):
+#         """
+#         This view should return a list of all the VocabularyLists
+#         for the currently authenticated user.
+#         """
+#         user = self.request.user
+#         return VocabularyList.objects.filter(user=user).prefetch_related('language', 'user_vocabulary_word')
 
-class UserVocabularyWordStatusViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin):
+class VocabularyListAPIView(APIView):
     """
-    ViewSet for managing user vocabulary word learning status
+    API view for listing, creating, updating and deleting vocabulary word lists
     """
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
-    serializer_class = UserVocabularyWordModelSerializer
+    parser_classes = [JSONParser]  # Use regular JSON instead of JSON:API
+    renderer_classes = [JSONRenderer]  # Return regular JSON instead of JSON:API
+
+    def get(self, request):
+        """
+        Return a list of all the VocabularyLists for the currently authenticated user.
+        """
+        try:
+            user = request.user
+            vocabulary_lists = VocabularyList.objects.filter(user=user).prefetch_related('language', 'user_vocabulary_word')
+            serializer = VocabularyListModelSerializer(vocabulary_lists, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request, pk=None):
+        """
+        Update a VocabularyList.
+        Supports updating user_vocabulary_words by providing a list of IDs.
+        expected request data: {
+            "id": uuid,
+            "vocabulary_word": [uuid1, uuid2, ...],
+            "user_vocabulary_word": [uuid1, uuid2, ...]
+        }
+        """
+        user = request.user
+        vocabulary_list = VocabularyList.objects.get(id=request.data["id"], user=user)
+        serializer = VocabularyListUpdateModelSerializer(vocabulary_list, data=request.data)
+        # print(f"Serializer: {serializer}")
+        if serializer.is_valid(raise_exception=True):
+            # Use validated_data instead of data - this is safe to access before save()
+            # print(f"Serializer validated data: {str(serializer.validated_data)}")
+            vocabulary_words = serializer.validated_data.get("vocabulary_word", [])
+            user_vocabulary_words = serializer.validated_data.get("user_vocabulary_word", [])
+
+            print(f"Vocabulary words: {vocabulary_words}")
+            print(f"User vocabulary words: {user_vocabulary_words}")
+
+            # Create UserVocabularyWord objects for vocabulary words if provided
+            for vocabulary_word in vocabulary_words:
+                user_vocab_word, _ = UserVocabularyWord.objects.get_or_create(
+                    user=user,
+                    vocabulary_word=vocabulary_word,
+                    defaults={'learning_status': 0, 'is_selected_for_practice': False}
+                )
+                if user_vocab_word not in user_vocabulary_words:
+                    user_vocabulary_words.append(user_vocab_word)
+                    print(f"User vocabulary word added: {user_vocab_word}")
+            
+            # Update validated_data with the final user_vocabulary_words list
+            # This ensures the serializer saves the correct ManyToMany relationship
+            serializer.validated_data["user_vocabulary_word"] = user_vocabulary_words
+            print(f"User vocabulary words: {user_vocabulary_words} for vocabulary list: {vocabulary_list}")            
+            # Save the instance - serializer will handle the ManyToMany field
+            serializer.save()
+            
+            # Now it's safe to access serializer.data after save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# class UserVocabularyWordStatusViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin):
+#     """
+#     ViewSet for managing user vocabulary word learning status
+#     """
+#     authentication_classes = [TokenAuthentication]
+#     permission_classes = [IsAuthenticated]
+#     serializer_class = UserVocabularyWordModelSerializer
     
-    def get_queryset(self):
-        """
-        This view should return a list of all the UserVocabularyWords
-        for the currently authenticated user.
-        """
-        user = self.request.user
-        return UserVocabularyWord.objects.filter(user=user).prefetch_related('vocabulary_word', 'vocabulary_word__level')
+#     def get_queryset(self):
+#         """
+#         This view should return a list of all the UserVocabularyWords
+#         for the currently authenticated user.
+#         """
+#         user = self.request.user
+#         return UserVocabularyWord.objects.filter(user=user).prefetch_related('vocabulary_word', 'vocabulary_word__level')
     
     def perform_create(self, serializer):
         """

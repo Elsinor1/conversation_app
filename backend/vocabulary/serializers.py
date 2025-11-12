@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import VocabularyWord, VocabularyPractice, VocabularyList, UserVocabularyWord
 from users.serializers import LevelSerializer
 from conversations.serializers import ThemeModelSerializerIdTitleOnly
+from users.serializers import LanguageSerializer
 
 class VocabularyWordModelSerializer(serializers.ModelSerializer):
     level = LevelSerializer(read_only=True)
@@ -19,6 +20,9 @@ class VocabularyWordModelSerializer(serializers.ModelSerializer):
         )   
 
 class VocabularyListModelSerializer(serializers.ModelSerializer):
+    user_vocabulary_word = serializers.PrimaryKeyRelatedField(queryset=UserVocabularyWord.objects.all(), many=True)
+    language = LanguageSerializer(read_only=True)
+
     class Meta:
         model = VocabularyList
         fields = (
@@ -26,6 +30,18 @@ class VocabularyListModelSerializer(serializers.ModelSerializer):
             "name",
             "language",
             "user",
+            "user_vocabulary_word"
+        )
+
+class VocabularyListUpdateModelSerializer(serializers.ModelSerializer):
+    vocabulary_word = serializers.PrimaryKeyRelatedField(queryset=VocabularyWord.objects.all(), many=True, required=False)
+    user_vocabulary_word = serializers.PrimaryKeyRelatedField(queryset=UserVocabularyWord.objects.all(), many=True, required=False)
+
+    class Meta:
+        model = VocabularyList
+        fields = (
+            "id",
+            "vocabulary_word",
             "user_vocabulary_word"
         )
 
@@ -39,6 +55,7 @@ class VocabularyPracticeModelSerializer(serializers.ModelSerializer):
         )
 
 class UserVocabularyWordModelSerializer(serializers.ModelSerializer):
+    # For input: accepts UUID as primary key
     vocabulary_word = serializers.PrimaryKeyRelatedField(queryset=VocabularyWord.objects.all(), required=True)
     
     class Meta:
@@ -55,3 +72,11 @@ class UserVocabularyWordModelSerializer(serializers.ModelSerializer):
             'is_selected_for_practice': {'required': False},
             'user': {'required': False}  # Will be set by perform_create
         }
+    
+    def to_representation(self, instance):
+        """Override to use VocabularyWordModelSerializer for vocabulary_word when exporting"""
+        representation = super().to_representation(instance)
+        # Serialize vocabulary_word using VocabularyWordModelSerializer
+        vocabulary_word_serializer = VocabularyWordModelSerializer(instance.vocabulary_word)
+        representation['vocabulary_word'] = vocabulary_word_serializer.data
+        return representation

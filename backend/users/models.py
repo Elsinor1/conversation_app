@@ -7,7 +7,6 @@ from django_extensions.db.models import (
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
 import uuid
-
 class User(AbstractUser, ActivatorModel, TimeStampedModel):
     """
     users.User
@@ -70,6 +69,7 @@ class LanguageLevel(models.Model):
 
     class Meta:
         verbose_name_plural = "Language levels"
+
 
     def __str__(self):
         return f"{self.user.username} : {self.language} {self.level}"

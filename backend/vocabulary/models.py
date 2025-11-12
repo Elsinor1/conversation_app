@@ -57,7 +57,7 @@ class UserVocabularyWord(Model, TimeStampedModel):
         unique_together = ['user', 'vocabulary_word']  # Prevent duplicate entries
     
     def __str__(self):
-        return f"{self.user.username} - {self.vocabulary_word.word} ({self.get_learning_status_display()})"
+        return f"{self.user.username} - {self.vocabulary_word.word} ({self.learning_status}%)"
 
 class VocabularyList(Model):
     """
@@ -69,7 +69,7 @@ class VocabularyList(Model):
     name = models.CharField(max_length=255)
     language = models.ForeignKey(Language, on_delete=models.CASCADE, verbose_name="languages")
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="users")
-    user_vocabulary_word = models.ManyToManyField(UserVocabularyWord, verbose_name="user_vocabulary_words")
+    user_vocabulary_word = models.ManyToManyField(UserVocabularyWord, blank=True, null=True, verbose_name="user_vocabulary_words")
     
     class Meta:
         verbose_name_plural = "Vocabulary lists"
@@ -87,7 +87,7 @@ class VocabularyPractice(Model):
     parameters:     words: model:vocabulary.VocabularyWord (many-to-many)
                     user: model:User (many-to-many) 
     """
-    words = models.ManyToManyField(VocabularyWord, verbose_name="vocabulary_words")
+    words = models.ManyToManyField(VocabularyWord, blank=True, null=True, verbose_name="vocabulary_words")
     user = models.ManyToManyField(User, verbose_name="users")
 
     class Meta:

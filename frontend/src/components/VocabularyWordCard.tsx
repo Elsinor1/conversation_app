@@ -56,7 +56,7 @@ export default function VocabularyWordCard({
 
   return (
     <div
-      className={`${borderClass} rounded-lg p-4 transition-all duration-200 hover:shadow-lg relative cursor-pointer`}
+      className={`${borderClass} bg-green-500 rounded-lg p-4 transition-all duration-200 hover:shadow-lg relative cursor-pointer`}
       style={{
         backgroundColor: getBackgroundColor(learningStatus)
       }}

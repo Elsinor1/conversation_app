@@ -3,12 +3,14 @@ import {
   getVocabularyWords, 
   getUserVocabularyWords, 
   updateVocabularySelection,
+  getVocabularyLists,
   getThemes,
   getUserLanguageLevels,
+  getUserVocabularyWordIdsFromVocabularyWordIds,
   type VocabularyWord, 
   type UserVocabularyWord, 
   type VocabularyTheme,
-  type LanguageLevel 
+  type LanguageLevel
 } from '../api';
 import { 
   FaChevronDown,
@@ -37,6 +39,7 @@ export default function Vocabulary({ token }: VocabularyProps) {
 
   // Selection state for words to mark as learned
   const [selectedWordIds, setSelectedWordIds] = useState<Set<number>>(new Set());
+  const [selectedUserVocabularyWordIds, setSelectedUserVocabularyWordIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
 
   // Dropdown states
@@ -57,7 +60,6 @@ export default function Vocabulary({ token }: VocabularyProps) {
         
         // Ensure we have arrays (API functions now handle unwrapping)
         setVocabularyWords(Array.isArray(words) ? words : []);
-        setUserVocabularyWords(Array.isArray(userWords) ? userWords : []);
         setThemes(Array.isArray(themesData) ? themesData : []);
         setLanguageLevels(Array.isArray(languagesData) ? languagesData : []);
         
@@ -69,8 +71,18 @@ export default function Vocabulary({ token }: VocabularyProps) {
         console.log('User vocabulary words:', Array.isArray(userWords) ? userWords : []);
         
         // Set default language if available
-        if (Array.isArray(languagesData) && languagesData.length > 0) {
-          setSelectedLanguage(languagesData[0].language.id);
+        const defaultLanguageId = Array.isArray(languagesData) && languagesData.length > 0 
+          ? languagesData[0].language.id 
+          : null;
+        
+        if (defaultLanguageId !== null) {
+          setSelectedLanguage(defaultLanguageId);
+          // Fetch and filter user vocabulary words based on vocabulary list for the selected language
+          await getUserVocabularyWordsAndSelectThemForPractice(defaultLanguageId, userWords);
+        } else {
+          // No language selected, just set all user vocabulary words
+          setUserVocabularyWords(Array.isArray(userWords) ? userWords : []);
+          setSelectedUserVocabularyWordIds(new Set());
         }
       } catch (err) {
         console.error('Error fetching vocabulary data:', err);
@@ -87,6 +99,13 @@ export default function Vocabulary({ token }: VocabularyProps) {
 
     fetchData();
   }, [token]);
+
+  // Re-filter user vocabulary words when selected language changes
+  useEffect(() => {
+    if (selectedLanguage !== null && userVocabularyWords.length > 0) {
+      getUserVocabularyWordsAndSelectThemForPractice(selectedLanguage);
+    }
+  }, [selectedLanguage, token]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -105,25 +124,52 @@ export default function Vocabulary({ token }: VocabularyProps) {
     };
   }, []);
 
-  const getWordStatus = (vocabularyWordId: number): LearningStatus => {
-    const userWord = userVocabularyWords.find(uw => uw.vocabulary_word.id === vocabularyWordId);
-    return userWord?.learning_status || 'not_learned';
+  const getUserVocabularyWordsAndSelectThemForPractice = async (languageId: string | number | null = null, preFetchedWords?: UserVocabularyWord[]) => {
+    // Use pre-fetched words if provided, otherwise fetch them
+    const userVocabularyWords = preFetchedWords || await getUserVocabularyWords(token);
+    console.log('User vocabulary words:', userVocabularyWords);
+    
+    // Use provided languageId or fall back to selectedLanguage state
+    const targetLanguageId = languageId !== null ? languageId : selectedLanguage;
+    
+    // Get vocabulary lists and filter by selected language
+    let filteredIds: string[] = [];
+    
+    if (targetLanguageId !== null) {
+      const vocabularyLists = await getVocabularyLists(token);
+      console.log('Vocabulary lists:', vocabularyLists);
+      
+      const vocabularyList = vocabularyLists.find(vl => vl.language.id === targetLanguageId);
+      console.log('Found vocabulary list for language:', vocabularyList);
+      
+      if (vocabularyList && vocabularyList.user_vocabulary_word) {
+        // Convert vocabulary list IDs to strings for comparison
+        const vocabularyListIds = new Set(
+          vocabularyList.user_vocabulary_word.map(id => String(id))
+        );
+        console.log('Vocabulary list user_vocabulary_word IDs:', vocabularyListIds);
+        
+        // Filter user vocabulary words to only include those in the vocabulary list
+        filteredIds = userVocabularyWords
+          .filter(word => vocabularyListIds.has(String(word.id)))
+          .map(word => word.id);
+        console.log('Filtered IDs from vocabulary list:', filteredIds);
+      } else {
+        console.log('No vocabulary list found or no user_vocabulary_word in list');
+      }
+    }
+    
+    // If no language selected or no vocabulary list found, don't select any (empty set)
+    // This ensures only words in the vocabulary list are selected
+    const selectedIdsSet = new Set(filteredIds);
+    console.log('Created Set from filtered IDs:', selectedIdsSet);
+    console.log('Set size:', selectedIdsSet.size);
+    console.log('Set contents (Array.from):', Array.from(selectedIdsSet));
+    
+    setUserVocabularyWords(userVocabularyWords);
+    setSelectedUserVocabularyWordIds(selectedIdsSet);
   };
 
-  // Convert learning status string to number (0-100)
-  const getLearningStatusNumber = (vocabularyWordId: number): number => {
-    const status = getWordStatus(vocabularyWordId);
-    switch (status) {
-      case 'not_learned':
-        return 0;
-      case 'in_progress':
-        return 50;
-      case 'learned':
-        return 100;
-      default:
-        return 0;
-    }
-  };
 
   // Handle card click - toggle selection
   const handleCardClick = (vocabularyWordId: number) => {
@@ -131,16 +177,38 @@ export default function Vocabulary({ token }: VocabularyProps) {
       const newSet = new Set(prev);
       if (newSet.has(vocabularyWordId)) {
         newSet.delete(vocabularyWordId);
+        console.log('Selected word ID removed:', vocabularyWordId)
       } else {
         newSet.add(vocabularyWordId);
+        console.log('Selected word ID added:', vocabularyWordId)
       }
+      // console.log('Selected word IDs:', newSet)
+      return newSet;
+    });
+  };
+
+  const handleUserVocabularyWordCardClick = (userVocabularyWordId: string) => {
+    setSelectedUserVocabularyWordIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userVocabularyWordId)) {
+        newSet.delete(userVocabularyWordId);
+        console.log('Selected user vocabulary word ID removed:', userVocabularyWordId)
+      } else {
+        newSet.add(userVocabularyWordId);
+        console.log('Selected user vocabulary word ID added:', userVocabularyWordId)
+      }
+      // console.log('Selected user vocabulary word IDs:', newSet)
       return newSet;
     });
   };
 
   // Handle save button - update selection for practice
   const handleSave = async () => {
-    if (selectedWordIds.size === 0) {
+    console.log('handleSave called');
+    console.log('selectedWordIds:', selectedWordIds.size, Array.from(selectedWordIds));
+    console.log('selectedUserVocabularyWordIds:', selectedUserVocabularyWordIds.size, Array.from(selectedUserVocabularyWordIds));
+    if (selectedWordIds.size === 0 && selectedUserVocabularyWordIds.size === 0) {
+      console.error('No words or user vocabulary words selected.');
       return; // Nothing to save
     }
 
@@ -148,28 +216,26 @@ export default function Vocabulary({ token }: VocabularyProps) {
       setSaving(true);
       setError(null);
 
-      // Get currently selected words for practice (from existing userVocabularyWords)
-      const currentlySelectedWordIds = new Set(
-        userVocabularyWords
-          .filter(uw => uw.is_selected_for_practice)
-          .map(uw => uw.vocabulary_word.id)
-      );
+      // Convert vocabulary word IDs to user vocabulary word IDs first
+      // const userVocabularyWords = await getUserVocabularyWordIdsFromVocabularyWordIds(token, Array.from(selectedWordIds));
 
-      // Determine which words to select and unselect
-      const selectedWordIdsArray = Array.from(selectedWordIds);
-      const unselectedWordIdsArray = Array.from(currentlySelectedWordIds).filter(
-        id => !selectedWordIds.has(id)
-      );
+      // Get vocabulary list (should be created automatically with language level)
+      const vocabularyLists = await getVocabularyLists(token);
+      console.log('Vocabulary lists:', vocabularyLists);
+      
+      if (vocabularyLists.length === 0) {
+        throw new Error('No vocabulary list found. Vocabulary lists are created automatically when you set up a language level. Please set up a language level first.');
+      }
+      
+      // Use the first vocabulary list
+      const vocabularyList = vocabularyLists.find(vocabularyList => vocabularyList.language.id === selectedLanguage);
+      if (!vocabularyList) {
+        throw new Error('No vocabulary list found for the selected language.');
+      }
+      
+      // Update vocabulary list with PUT
+      await updateVocabularySelection(token, vocabularyList.id, Array.from(selectedWordIds), Array.from(selectedUserVocabularyWordIds));
 
-      // Call the backend to update selection
-      await updateVocabularySelection(token, selectedWordIdsArray, unselectedWordIdsArray);
-
-      // Refresh user vocabulary words to get updated data
-      const refreshedUserWords = await getUserVocabularyWords(token);
-      setUserVocabularyWords(Array.isArray(refreshedUserWords) ? refreshedUserWords : []);
-
-      // Clear selection after save
-      setSelectedWordIds(new Set());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update vocabulary selection');
     } finally {
@@ -192,8 +258,7 @@ export default function Vocabulary({ token }: VocabularyProps) {
 
     // Filter by status
     if (selectedStatus !== 'all') {
-      const wordStatus = getWordStatus(word.id);
-      return wordStatus === selectedStatus;
+      return false;
     }
 
     return true;
@@ -377,15 +442,23 @@ export default function Vocabulary({ token }: VocabularyProps) {
             {/* Start Practice Button */}
             <div className="flex items-end">
               <button
-                onClick={handleSave}
-                disabled={selectedWordIds.size === 0 || saving}
+                onClick={() => {
+                  console.log('Start Practice Button clicked!', {
+                    selectedWordIds: selectedWordIds.size,
+                    selectedUserVocabularyWordIds: selectedUserVocabularyWordIds.size,
+                    saving,
+                    disabled: (selectedWordIds.size === 0 && selectedUserVocabularyWordIds.size === 0) || saving
+                  });
+                  handleSave();
+                }}
+                disabled={(selectedWordIds.size + selectedUserVocabularyWordIds.size === 0) || saving}
                 className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
-                  selectedWordIds.size === 0 || saving
+                  (selectedWordIds.size + selectedUserVocabularyWordIds.size === 0) || saving
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
-                {saving ? 'Saving...' : `Start practice ${selectedWordIds.size} words selected`}
+                {saving ? 'Saving...' : `Start practice ${selectedWordIds.size + selectedUserVocabularyWordIds.size} words selected`}
               </button>
             </div>
           </div>
@@ -398,9 +471,22 @@ export default function Vocabulary({ token }: VocabularyProps) {
               key={word.id}
               word={word}
               selectedLanguage={selectedLanguageName !== 'All Languages' ? selectedLanguageName : null}
-              learningStatus={getLearningStatusNumber(word.id)}
+              learningStatus={0}
               isSelectedForLearning={selectedWordIds.has(word.id)}
               onClick={() => handleCardClick(word.id)}
+            />
+          ))}
+        </div>
+        {/* User Vocabulary Words Grid */}
+        <div className="grid bg-red-500 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {userVocabularyWords.map(userWord => (
+            <VocabularyWordCard
+              key={userWord.id}
+              word={userWord.vocabulary_word}
+              selectedLanguage={selectedLanguageName !== 'All Languages' ? selectedLanguageName : null}
+              learningStatus={Number(userWord.learning_status)}
+              isSelectedForLearning={selectedUserVocabularyWordIds.has(userWord.id)}
+              onClick={() => handleUserVocabularyWordCardClick(userWord.id)}
             />
           ))}
         </div>
@@ -416,3 +502,4 @@ export default function Vocabulary({ token }: VocabularyProps) {
     </div>
   );
 }
+

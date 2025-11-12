@@ -111,12 +111,12 @@ class LanguageLevelsAPIView(views.APIView):
         print(f"Data with user: {data}")
         serializer = LanguageLevelSerializer(data=data)
         print(f"Serializer is valid: {serializer.is_valid()}")
-        if not serializer.is_valid():
-            print(f"Serializer errors: {serializer.errors}")
         if serializer.is_valid(raise_exception=True):
             serializer.save()
+            
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
+            print(f"Serializer errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def put(self, request, pk):
