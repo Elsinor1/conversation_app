@@ -1,15 +1,14 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { postChatMessage } from '../api'
-import Input from './Input'
 
 type Message = { role: 'assistant' | 'user'; text: string }
 
-interface ChatProps {
+interface SpeechPracticeChatProps {
   token: string
 }
 
-export default function Chat({ token }: ChatProps) {
+export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
   const [searchParams] = useSearchParams()
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([])

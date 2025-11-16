@@ -27,7 +27,7 @@ export default function Login({ onLogin }: LoginProps) {
       const response = await login({ username, password })
       setStoredToken(response.token)
       onLogin(response.token)
-      navigate('/chat')
+      navigate('/speech-practice')
     } catch (err: any) {
       setError(err?.message || 'Login failed')
     } finally {

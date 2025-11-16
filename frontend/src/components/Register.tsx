@@ -39,7 +39,7 @@ export default function Register({ onLogin }: RegisterProps) {
       const response = await register({ username, password, email: email || undefined })
       setStoredToken(response.token)
       onLogin(response.token)
-      navigate('/chat')
+      navigate('/speech-practice')
     } catch (err: any) {
       setError(err?.message || 'Registration failed')
     } finally {

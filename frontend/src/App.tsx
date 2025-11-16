@@ -12,10 +12,11 @@ import TopBar from "./components/TopBar";
 import Home from "./components/Home";
 import Login from "./components/Login";
 import Register from "./components/Register";
-import Chat from "./components/Chat";
-import LanguagePracticeSetup from "./components/LanguagePracticeSetup";
+import SpeechPracticeSetup from "./components/SpeechPracticeSetup";
 import LanguageDashboard from "./components/LanguageDashboard";
+import SpeechPracticeChat from "./components/SpeechPracticeChat.tsx";
 import Vocabulary from "./components/Vocabulary";
+import VocabularyPractice from "./components/VocabularyPractice";
 
 function App() {
   const [token, setToken] = useState(() => getStoredToken() || "");
@@ -54,7 +55,7 @@ function App() {
             path="/register"
             element={
               isAuthenticated ? (
-                <Navigate to="/chat" replace />
+                <Navigate to="/" replace />
               ) : (
                 <>
                   <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
@@ -64,13 +65,13 @@ function App() {
             }
           />
           <Route
-            path="/practice-setup"
+            path="/speech-practice-setup"
             element={
               isAuthenticated ? (
                 <>
                   <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
                   <Navigation isAuthenticated={isAuthenticated} />
-                  <LanguagePracticeSetup token={token} />
+                  <SpeechPracticeSetup token={token} />
                 </>
               ) : (
                 <Navigate to="/login" replace />
@@ -78,13 +79,13 @@ function App() {
             }
           />
           <Route
-            path="/practice"
+            path="/speech-practice"
             element={
               isAuthenticated ? (
                 <>
                   <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
                   <Navigation isAuthenticated={isAuthenticated} />
-                  <Chat token={token} />
+                  <SpeechPracticeChat token={token} />
                 </>
               ) : (
                 <Navigate to="/login" replace />
@@ -92,17 +93,17 @@ function App() {
             }
           />
           <Route
-            path="/chat-setup"
-            element={<Navigate to="/practice-setup" replace />}
+            path="/speech-practice-setup"
+            element={<Navigate to="/speech-practice-setup" replace />}
           />
           <Route
-            path="/chat"
+            path="/speech-practice"
             element={
               isAuthenticated ? (
                 <>
                   <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
                   <Navigation isAuthenticated={isAuthenticated} />
-                  <Chat token={token} />
+                  <SpeechPracticeChat token={token} />
                 </>
               ) : (
                 <Navigate to="/login" replace />
@@ -131,6 +132,20 @@ function App() {
                   <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
                   <Navigation isAuthenticated={isAuthenticated} />
                   <Vocabulary token={token} />
+                </>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/vocabulary-practice"
+            element={
+              isAuthenticated ? (
+                <>
+                  <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
+                  <Navigation isAuthenticated={isAuthenticated} />
+                  <VocabularyPractice />
                 </>
               ) : (
                 <Navigate to="/login" replace />

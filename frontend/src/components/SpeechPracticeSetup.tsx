@@ -4,11 +4,11 @@ import { getPracticeSetupData, createChat, type JSONAPITheme, type LanguageLevel
 import Button from './Button'
 import { LuGraduationCap, LuBookOpen, LuUsers, LuPlay, LuGlobe } from 'react-icons/lu'
 
-interface LanguagePracticeSetupProps {
+interface SpeechPracticeSetupProps {
   token: string
 }
 
-export default function LanguagePracticeSetup({ token }: LanguagePracticeSetupProps) {
+export default function SpeechPracticeSetup({ token }: SpeechPracticeSetupProps) {
   const [themes, setThemes] = useState<JSONAPITheme[]>([])
   const [languageLevels, setLanguageLevels] = useState<LanguageLevel[]>([])
   const [selectedTheme, setSelectedTheme] = useState('')

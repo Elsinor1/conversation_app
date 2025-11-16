@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   getVocabularyWords, 
   getUserVocabularyWords, 
@@ -16,7 +17,6 @@ import {
   FaBookOpen 
 } from 'react-icons/fa';
 import VocabularyWordCard from './VocabularyWordCard';
-import VocabularyPractice from './VocabularyPractice';
 
 interface VocabularyProps {
   token: string;
@@ -42,10 +42,7 @@ export default function Vocabulary({ token }: VocabularyProps) {
   const [selectedUserVocabularyWordIds, setSelectedUserVocabularyWordIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   
-  // Practice mode state
-  const [isPracticeMode, setIsPracticeMode] = useState(false);
-  const [practiceWords, setPracticeWords] = useState<VocabularyWord[]>([]);
-  const [practiceUserWords, setPracticeUserWords] = useState<UserVocabularyWord[]>([]);
+  const navigate = useNavigate();
 
   // Dropdown states
   const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
@@ -242,9 +239,18 @@ export default function Vocabulary({ token }: VocabularyProps) {
       const wordsForPractice = vocabularyWords.filter(word => selectedWordIds.has(word.id));
       const userWordsForPractice = userVocabularyWords.filter(userWord => selectedUserVocabularyWordIds.has(userWord.id));
       
-      setPracticeWords(wordsForPractice);
-      setPracticeUserWords(userWordsForPractice);
-      setIsPracticeMode(true);
+      // Navigate to practice page with data
+      const selectedLanguageName = selectedLanguage !== null 
+        ? languageLevels.find(lang => lang.language.id === selectedLanguage)?.language.name || 'German'
+        : 'German';
+      
+      navigate('/vocabulary-practice', {
+        state: {
+          selectedWords: wordsForPractice,
+          selectedUserWords: userWordsForPractice,
+          learnedLanguage: selectedLanguageName !== 'All Languages' ? selectedLanguageName : 'German'
+        }
+      });
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start practice');
@@ -277,18 +283,6 @@ export default function Vocabulary({ token }: VocabularyProps) {
   const selectedLanguageName = selectedLanguage !== null 
     ? languageLevels.find(lang => lang.language.id === selectedLanguage)?.language.name || 'All Languages'
     : 'All Languages';
-
-  // Show practice component if in practice mode
-  if (isPracticeMode) {
-    return (
-      <VocabularyPractice
-        selectedWords={practiceWords}
-        selectedUserWords={practiceUserWords}
-        learnedLanguage={selectedLanguageName !== 'All Languages' ? selectedLanguageName : 'German'}
-        onClose={() => setIsPracticeMode(false)}
-      />
-    );
-  }
   const selectedThemeName = selectedTheme !== null
     ? themes.find(theme => String(theme.id) === String(selectedTheme))?.title || 'All Themes'
     : 'All Themes';

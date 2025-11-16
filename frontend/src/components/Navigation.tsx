@@ -59,13 +59,13 @@ export default function Navigation({
               <>
                 <SideBarIcon
                   icon={<TbVocabulary size="28" />}
-                  text="Vocabulary"
+                  text="Vocabulary practice"
                   to="/vocabulary"
                 />
                 <SideBarIcon
                   icon={<LuSpeech size="28" />}
-                  text="Language practice"
-                  to="/practice-setup"
+                  text="Speech practice"
+                  to="/speech-practice-setup"
                 />
               </>
             ) : (
