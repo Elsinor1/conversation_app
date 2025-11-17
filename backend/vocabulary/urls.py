@@ -9,11 +9,12 @@ app_name = 'vocabulary'
 router = DefaultRouter()
 router.register(r'vocabulary-words', views.GeneralVocabularyWordViewSet, basename='vocabulary-words')
 router.register(r'user-vocabulary-word', views.UserVocabularyWordViewSet, basename='user-vocabulary-word')
-router.register(r'vocabulary-practice', views.VocabularyPracticeViewSet, basename='vocabulary-practice')
+router.register(r'vocabulary-practice-session', views.VocabularyPracticeSessionViewSet, basename='vocabulary-practice-session')
 
 urlpatterns = [
     path('vocabulary-list/', views.VocabularyListAPIView.as_view(), name='vocabulary-list'),
     path('vocabulary-list/<uuid:pk>/', views.VocabularyListAPIView.as_view(), name='vocabulary-list-detail'),
+    path('user-vocabulary-word/bulk-update/', views.UserVocabularyWordBulkUpdateView.as_view(), name='user-vocabulary-word-bulk-update'),
 ]
 
 urlpatterns += router.urls

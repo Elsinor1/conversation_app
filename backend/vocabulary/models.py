@@ -69,7 +69,7 @@ class VocabularyList(Model):
     name = models.CharField(max_length=255)
     language = models.ForeignKey(Language, on_delete=models.CASCADE, verbose_name="languages")
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="users")
-    user_vocabulary_word = models.ManyToManyField(UserVocabularyWord, blank=True, null=True, verbose_name="user_vocabulary_words")
+    user_vocabulary_word = models.ManyToManyField(UserVocabularyWord, blank=True, verbose_name="user_vocabulary_words")
     
     class Meta:
         verbose_name_plural = "Vocabulary lists"
@@ -80,18 +80,20 @@ class VocabularyList(Model):
 
 
 
-class VocabularyPractice(Model):
+class VocabularyPractice(Model, TimeStampedModel):
     """
     vocabulary.VocabularyPractice
     Stores a vocabulary practice.
-    parameters:     words: model:vocabulary.VocabularyWord (many-to-many)
-                    user: model:User (many-to-many) 
+    parameters:     user_vocabulary_words: model:vocabulary.UserVocabularyWord (many-to-many)
+                    user: model:User 
+                    time_length: int
     """
-    words = models.ManyToManyField(VocabularyWord, blank=True, null=True, verbose_name="vocabulary_words")
-    user = models.ManyToManyField(User, verbose_name="users")
-
+    user_vocabulary_words = models.ManyToManyField(UserVocabularyWord, blank=True, null=True, verbose_name="user_vocabulary_words")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="user")
+    time_length = models.IntegerField(default=0, verbose_name="time_length")
+    
     class Meta:
         verbose_name_plural = "Vocabulary practices"
 
     def __str__(self):
-        return f"Practice {self.id} - {self.words.count()} words - {self.user.count()} users"
+        return f"Practice {self.id} - {self.user_vocabulary_words.count()} words"

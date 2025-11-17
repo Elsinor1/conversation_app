@@ -46,13 +46,20 @@ class VocabularyListUpdateModelSerializer(serializers.ModelSerializer):
         )
 
 class VocabularyPracticeModelSerializer(serializers.ModelSerializer):
+    user_vocabulary_words = serializers.PrimaryKeyRelatedField(queryset=UserVocabularyWord.objects.all(), many=True, required=False)
+    
     class Meta:
         model = VocabularyPractice
         fields = (
             "id",
-            "words",
-            "user"
+            "user_vocabulary_words",
+            "user",
+            "time_length"
         )
+        extra_kwargs = {
+            'user': {'required': False},  # Will be set by perform_create
+            'time_length': {'required': False}
+        }
 
 class UserVocabularyWordModelSerializer(serializers.ModelSerializer):
     # For input: accepts UUID as primary key
@@ -80,3 +87,12 @@ class UserVocabularyWordModelSerializer(serializers.ModelSerializer):
         vocabulary_word_serializer = VocabularyWordModelSerializer(instance.vocabulary_word)
         representation['vocabulary_word'] = vocabulary_word_serializer.data
         return representation
+
+class UserVocabularyWordUpdateModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserVocabularyWord
+        fields = (
+            "id",
+            "user",
+            "learning_status"
+        )

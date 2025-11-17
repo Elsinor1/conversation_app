@@ -524,4 +524,75 @@ export async function getUserVocabularyWordIdsFromVocabularyWordIds(token: strin
   return data.data
 }
 
+export type VocabularyPracticeSession = {
+  id: string
+  user_vocabulary_words: string[]
+  user: string | number
+  time_length: number
+}
+
+export async function createVocabularyPracticeSession(
+  token: string,
+  userVocabularyWordIds: string[],
+  timeLength: number
+): Promise<VocabularyPracticeSession> {
+  const response = await fetch('/api/vocabulary-practice-session/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    },
+    body: JSON.stringify({
+      user_vocabulary_words: userVocabularyWordIds,
+      time_length: timeLength
+    }),
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to create vocabulary practice session (${response.status}): ${text || response.statusText}`)
+  }
+  const data = await response.json()
+  return data
+}
+
+
+export type VocabularyWordScoreUpdate = {
+  id: string
+  learning_status: number
+}
+
+export async function updateVocabularyWordScores(
+  token: string,
+  scoreUpdates: VocabularyWordScoreUpdate[],
+): Promise<void> {
+  const url = '/user-vocabulary-word/bulk-update/';
+  const method = 'PUT';
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: `Token ${token}`,
+  };
+  const body = JSON.stringify(scoreUpdates);
+  
+  // Print curl command for easy testing
+  // Use backend URL directly (port 8000) since frontend proxy won't work for curl
+  const backendUrl = 'http://localhost:8000';
+  const curlCommand = `curl -X ${method} '${backendUrl}${url}' \\\n` +
+    Object.entries(headers).map(([key, value]) => `  -H '${key}: ${value}'`).join(' \\\n') +
+    ` \\\n  -d '${body.replace(/'/g, "'\\''")}'`;
+  console.log('Curl command for testing (use backend port 8000):\n', curlCommand);
+  
+  const response = await fetch(url, {
+    method,
+    headers,
+    body,
+  })
+  console.log('Score update response:', response)
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to update vocabulary word scores (${response.status}): ${text || response.statusText}`)
+  }
+  const data = await response.json()
+  console.log('Score update response:', data)
+}
+
 

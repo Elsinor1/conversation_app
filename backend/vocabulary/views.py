@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from .models import VocabularyWord, VocabularyPractice, VocabularyList, UserVocabularyWord
-from .serializers import VocabularyWordModelSerializer, VocabularyPracticeModelSerializer, VocabularyListModelSerializer, UserVocabularyWordModelSerializer, VocabularyListUpdateModelSerializer
+from .serializers import VocabularyWordModelSerializer, VocabularyPracticeModelSerializer, VocabularyListModelSerializer, UserVocabularyWordModelSerializer, VocabularyListUpdateModelSerializer, UserVocabularyWordUpdateModelSerializer
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.views import APIView
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin
@@ -14,7 +14,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 
-class UserVocabularyWordViewSet(GenericViewSet, ListModelMixin, CreateModelMixin, DestroyModelMixin, RetrieveModelMixin, UpdateModelMixin,):
+class UserVocabularyWordViewSet(GenericViewSet, ListModelMixin, CreateModelMixin, DestroyModelMixin, RetrieveModelMixin, UpdateModelMixin):
     """
     Simple ViewSet for listing, creating, updating and deleting user vocabulary words
     """
@@ -60,6 +60,45 @@ class UserVocabularyWordViewSet(GenericViewSet, ListModelMixin, CreateModelMixin
             return Response({"error": "Validation error, array expected"}, status=status.HTTP_400_BAD_REQUEST)
  
 
+class UserVocabularyWordBulkUpdateView(APIView):
+    """
+    API view for updating multiple UserVocabularyWords.
+    """
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser]  # Use regular JSON instead of JSON:API
+    renderer_classes = [JSONRenderer]  # Return regular JSON instead of JSON:API
+
+    def put(self, request, *args, **kwargs):
+        """
+        Update multiple UserVocabularyWords.
+        expected request data: [{"id": uuid, "learning_status": 0-100}, ...]
+        """
+        user = request.user
+        updated_user_vocabulary_words = []
+        
+        for update_data in request.data:
+            word_id = update_data.get("id")
+            learning_status = update_data.get("learning_status", 0)
+            
+            if not word_id:
+                continue
+            
+            # Validate learning_status is between 0 and 100
+            learning_status = max(0, min(100, int(learning_status)))
+            
+            try:
+                user_vocabulary_word = UserVocabularyWord.objects.get(id=word_id, user=user)
+                user_vocabulary_word.learning_status = learning_status
+                user_vocabulary_word.save(update_fields=["learning_status"])
+                updated_user_vocabulary_words.append(UserVocabularyWordModelSerializer(user_vocabulary_word).data)
+            except UserVocabularyWord.DoesNotExist:
+                print(f"UserVocabularyWord {word_id} not found for user {user.id}")
+            except Exception as e:
+                print(f"Error updating word {word_id}: {e}")
+        
+        return Response(updated_user_vocabulary_words, status=status.HTTP_200_OK)
+
 class GeneralVocabularyWordViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin):
     """
     Simple ViewSet for listing, creating, updating and deleting general vocabulary words
@@ -69,23 +108,6 @@ class GeneralVocabularyWordViewSet(GenericViewSet, ListModelMixin, RetrieveModel
     serializer_class = VocabularyWordModelSerializer    
     queryset = VocabularyWord.objects.all().prefetch_related('level', 'theme')
 
-# class VocabularyListViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin):
-#     """
-#     Simple ViewSet for listing, creating, updating and deleting vocabulary word lists
-#     """
-#     authentication_classes = [TokenAuthentication]
-#     permission_classes = [IsAuthenticated]
-#     serializer_class = VocabularyListModelSerializer
-#     parser_classes = [JSONParser]  # Use regular JSON instead of JSON:API
-#     renderer_classes = [JSONRenderer]  # Return regular JSON instead of JSON:API
-    
-#     def get_queryset(self):
-#         """
-#         This view should return a list of all the VocabularyLists
-#         for the currently authenticated user.
-#         """
-#         user = self.request.user
-#         return VocabularyList.objects.filter(user=user).prefetch_related('language', 'user_vocabulary_word')
 
 class VocabularyListAPIView(APIView):
     """
@@ -176,13 +198,15 @@ class VocabularyListAPIView(APIView):
         """
         serializer.save(user=self.request.user)
 
-class VocabularyPracticeViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin):
+class VocabularyPracticeSessionViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin, CreateModelMixin):
     """
     Simple ViewSet for listing, creating, updating and deleting vocabulary practices
     """
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = VocabularyPracticeModelSerializer
+    parser_classes = [JSONParser]
+    renderer_classes = [JSONRenderer]
     
     def get_queryset(self):
         """
@@ -190,4 +214,14 @@ class VocabularyPracticeViewSet(GenericViewSet, ListModelMixin, RetrieveModelMix
         for the currently authenticated user.
         """
         user = self.request.user
-        return VocabularyPractice.objects.filter(user=user).prefetch_related('words', 'words__level')
+        return VocabularyPractice.objects.filter(user=user).prefetch_related('user_vocabulary_words')
+    
+    def perform_create(self, serializer):
+        """
+        Set the user to the current authenticated user when creating a new VocabularyPractice.
+        """
+        serializer.save(user=self.request.user)
+        print(f"Vocabulary practice session created: {serializer.data}")
+
+    
+    

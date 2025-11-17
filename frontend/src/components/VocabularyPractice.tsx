@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { VocabularyWord, UserVocabularyWord } from '../api';
+import { createVocabularyPracticeSession, updateVocabularyWordScores } from '../api';
+import { getStoredToken } from '../auth';
 import { FaCheck, FaArrowRight } from 'react-icons/fa';
 
 type PracticeStage = 'learned_to_english' | 'english_to_learned';
@@ -9,6 +11,15 @@ interface PracticeLocationState {
   selectedWords: VocabularyWord[];
   selectedUserWords: UserVocabularyWord[];
   learnedLanguage: string;
+}
+
+interface WordPerformance {
+  wordId: string | number;
+  stage1Correct: number; // Count of correct answers in stage 1
+  stage1Incorrect: number; // Count of incorrect answers in stage 1
+  stage2Correct: number; // Count of correct answers in stage 2
+  stage2Incorrect: number; // Count of incorrect answers in stage 2
+  currentScore: number; // Current mastery score (0-100)
 }
 
 export default function VocabularyPractice() {
@@ -35,22 +46,54 @@ export default function VocabularyPractice() {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [correctAnswer, setCorrectAnswer] = useState('');
   const [wordsToPractice, setWordsToPractice] = useState<VocabularyWord[]>([]);
+  // Track total time spent in practice session (across both stages)
+  const startTimeRef = useRef<number>(Date.now());
+  // Track performance for each word during practice
+  const [wordPerformance, setWordPerformance] = useState<Map<string | number, WordPerformance>>(new Map());
 
-  // Combine selected words from both sources
+  // Combine selected words from both sources and initialize performance tracking
   useEffect(() => {
     const allWords: VocabularyWord[] = [];
+    const performanceMap = new Map<string | number, WordPerformance>();
     
     // Add words from selectedWords
     allWords.push(...selectedWords);
     
-    // Add words from selectedUserWords
+    // Add words from selectedUserWords and initialize their performance tracking
     selectedUserWords.forEach(userWord => {
-      if (!allWords.find(w => w.id === userWord.vocabulary_word.id)) {
+      const wordId = userWord.vocabulary_word.id;
+      if (!allWords.find(w => w.id === wordId)) {
         allWords.push(userWord.vocabulary_word);
+      }
+      // Initialize performance tracking with current learning_status as starting score
+      performanceMap.set(wordId, {
+        wordId: userWord.id, // Use UserVocabularyWord ID for updates
+        stage1Correct: 0,
+        stage1Incorrect: 0,
+        stage2Correct: 0,
+        stage2Incorrect: 0,
+        currentScore: userWord.learning_status || 0
+      });
+    });
+    
+    // Also initialize for words that don't have UserVocabularyWord yet
+    selectedWords.forEach(word => {
+      if (!performanceMap.has(word.id)) {
+        // Find corresponding UserVocabularyWord if exists
+        const userWord = selectedUserWords.find(uw => uw.vocabulary_word.id === word.id);
+        performanceMap.set(word.id, {
+          wordId: userWord?.id || word.id,
+          stage1Correct: 0,
+          stage1Incorrect: 0,
+          stage2Correct: 0,
+          stage2Incorrect: 0,
+          currentScore: userWord?.learning_status || 0
+        });
       }
     });
     
     setWordsToPractice(allWords);
+    setWordPerformance(performanceMap);
     setCurrentWordIndex(0);
     setUserInput('');
     setIsChecked(false);
@@ -97,23 +140,77 @@ export default function VocabularyPractice() {
     }
   };
 
+  // Calculate new score based on SM-2 inspired algorithm
+  const calculateNewScore = (currentScore: number, isCorrect: boolean, stage: PracticeStage): number => {
+    // Base increment/decrement values
+    const correctIncrement = stage === 'learned_to_english' ? 15 : 20; // Stage 2 is harder, reward more
+    const incorrectDecrement = stage === 'learned_to_english' ? 20 : 25; // Stage 2 is harder, penalize more
+    
+    let newScore = currentScore;
+    
+    if (isCorrect) {
+      // Increase score, but cap at 100
+      newScore = Math.min(100, currentScore + correctIncrement);
+    } else {
+      // Decrease score, but don't go below 0
+      newScore = Math.max(0, currentScore - incorrectDecrement);
+    }
+    
+    return newScore;
+  };
+
   const handleCheck = () => {
     if (!userInput.trim()) return;
     
     const expected = getExpectedAnswer();
     const userAnswer = userInput.toLowerCase().trim();
     const correct = expected === userAnswer;
+    const word = getCurrentWord();
+    
+    if (word) {
+      // Update performance tracking for this word
+      setWordPerformance(prev => {
+        const newMap = new Map(prev);
+        const wordId = word.id;
+        const performance = newMap.get(wordId) || {
+          wordId: selectedUserWords.find(uw => uw.vocabulary_word.id === wordId)?.id || wordId,
+          stage1Correct: 0,
+          stage1Incorrect: 0,
+          stage2Correct: 0,
+          stage2Incorrect: 0,
+          currentScore: selectedUserWords.find(uw => uw.vocabulary_word.id === wordId)?.learning_status || 0
+        };
+        
+        // Update counts and score based on stage
+        if (stage === 'learned_to_english') {
+          if (correct) {
+            performance.stage1Correct++;
+          } else {
+            performance.stage1Incorrect++;
+          }
+        } else {
+          if (correct) {
+            performance.stage2Correct++;
+          } else {
+            performance.stage2Incorrect++;
+          }
+        }
+        
+        // Calculate new score
+        performance.currentScore = calculateNewScore(performance.currentScore, correct, stage);
+        newMap.set(wordId, performance);
+        
+        return newMap;
+      });
+    }
     
     setIsChecked(true);
     setIsCorrect(correct);
     
-    if (!correct) {
-      const word = getCurrentWord();
-      if (word) {
-        setCorrectAnswer(stage === 'learned_to_english' 
-          ? word.word
-          : getLearnedLanguageTranslation(word));
-      }
+    if (!correct && word) {
+      setCorrectAnswer(stage === 'learned_to_english' 
+        ? word.word
+        : getLearnedLanguageTranslation(word));
     }
   };
 
@@ -128,7 +225,7 @@ export default function VocabularyPractice() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentWordIndex < wordsToPractice.length - 1) {
       setCurrentWordIndex(currentWordIndex + 1);
       setUserInput('');
@@ -145,7 +242,43 @@ export default function VocabularyPractice() {
         setIsCorrect(null);
         setCorrectAnswer('');
       } else {
-        // Finished both stages
+        // Finished both stages - calculate total time and send POST request to save practice session
+        const timeLength = Math.floor((Date.now() - startTimeRef.current) / 1000); // Total time in seconds
+        const userVocabularyWordIds = selectedUserWords.map(word => word.id);
+        
+        console.log(`Practice completed in ${timeLength} seconds with ${userVocabularyWordIds.length} words`);
+        console.log('Word performance:', Array.from(wordPerformance.entries()));
+        
+        const token = getStoredToken();
+        if (token && userVocabularyWordIds.length > 0) {
+          try {
+            // Save practice session
+            await createVocabularyPracticeSession(token, userVocabularyWordIds, timeLength);
+            console.log('Practice session saved successfully');
+            
+            // Update word scores - prepare score updates
+            const scoreUpdates: Array<{ id: string; learning_status: number }> = [];
+            wordPerformance.forEach((performance, wordId) => {
+              // Find the UserVocabularyWord ID for this word
+              const userWord = selectedUserWords.find(uw => uw.vocabulary_word.id === wordId);
+              if (userWord) {
+                scoreUpdates.push({
+                  id: userWord.id,
+                  learning_status: performance.currentScore
+                });
+              }
+            });
+            
+            if (scoreUpdates.length > 0) {
+              await updateVocabularyWordScores(token, scoreUpdates);
+              console.log('Word scores updated successfully');
+            }
+          } catch (error) {
+            console.error('Failed to save practice session or update scores:', error);
+            // Continue navigation even if save fails
+          }
+        }
+        
         navigate('/vocabulary');
       }
     }
