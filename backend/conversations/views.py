@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Theme, Scenario
 from .serializers import ThemeModelSerializer, ScenarioModelSerializer, ThemeWithScenariosSerializer
 from rest_framework.parsers import JSONParser
+from rest_framework.renderers import JSONRenderer
 from django.http import JsonResponse
 from json import JSONDecodeError
 from users.models import LanguageLevel
@@ -22,6 +23,10 @@ class ThemeViewSet(
     """Simple ViewSet for listing and retrieving Themes"""
     queryset = Theme.objects.all()
     serializer_class = ThemeModelSerializer
+    parser_classes = [JSONParser]
+    renderer_classes = [JSONRenderer]
+
+
 
     def create(self, request):
         try:
@@ -35,6 +40,7 @@ class ThemeViewSet(
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except JSONDecodeError:
             return JsonResponse({"result": "error","message": "Json decoding error"}, status= 400)
+
 
 
 class ScenarioViewSet(

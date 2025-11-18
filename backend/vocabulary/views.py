@@ -81,7 +81,7 @@ class UserVocabularyWordBulkUpdateView(APIView):
             word_id = update_data.get("id")
             learning_status = update_data.get("learning_status", 0)
             
-            if not word_id:
+            if not word_id or not learning_status:
                 continue
             
             # Validate learning_status is between 0 and 100

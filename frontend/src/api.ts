@@ -301,17 +301,17 @@ export async function getLanguageStats(token: string, languageName: string): Pro
 
 // Vocabulary API types
 export type VocabularyWord = {
-  id: number
+  id: string | number
   word: string
   german_translation: string
   czech_translation: string
   level: {
-    id: number
+    id: string | number
     ABC_value: string
     name: string
   }
   theme: Array<{
-    id: number
+    id: string | number
     title: string
     description: string
   }>
@@ -449,9 +449,9 @@ export async function getThemes(token: string): Promise<VocabularyTheme[]> {
     throw new Error(`Failed to fetch themes (${response.status}): ${text || response.statusText}`)
   }
   const data = await response.json()
-  console.log('Themes API response:', typeof data.data, data)
+  console.log('Themes API response:', typeof data, data)
   
-  return data.data
+  return data
 }
 
 export type VocabularyList = {

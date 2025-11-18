@@ -64,7 +64,10 @@ export default function VocabularyWordCard({
     >
       {/* Level bubble in upper right corner */}
       <span className="absolute top-2 right-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-        {word.level.ABC_value}
+        Level: {word.level.ABC_value}
+      </span>
+      <span className="absolute top-10 right-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+        Learned at: {learningStatus}%
       </span>
 
       {/* Main content - centered */}

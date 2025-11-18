@@ -38,7 +38,7 @@ export default function Vocabulary({ token }: VocabularyProps) {
   const [selectedStatus, setSelectedStatus] = useState<LearningStatus | 'all'>('all');
 
   // Selection state for words to mark as learned
-  const [selectedWordIds, setSelectedWordIds] = useState<Set<number>>(new Set());
+  const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(new Set());
   const [selectedUserVocabularyWordIds, setSelectedUserVocabularyWordIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   
@@ -174,15 +174,16 @@ export default function Vocabulary({ token }: VocabularyProps) {
 
 
   // Handle card click - toggle selection
-  const handleCardClick = (vocabularyWordId: number) => {
+  const handleCardClick = (vocabularyWordId: string | number) => {
+    const idString = String(vocabularyWordId);
     setSelectedWordIds(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(vocabularyWordId)) {
-        newSet.delete(vocabularyWordId);
-        console.log('Selected word ID removed:', vocabularyWordId)
+      if (newSet.has(idString)) {
+        newSet.delete(idString);
+        console.log('Selected word ID removed:', idString)
       } else {
-        newSet.add(vocabularyWordId);
-        console.log('Selected word ID added:', vocabularyWordId)
+        newSet.add(idString);
+        console.log('Selected word ID added:', idString)
       }
       // console.log('Selected word IDs:', newSet)
       return newSet;
@@ -236,7 +237,7 @@ export default function Vocabulary({ token }: VocabularyProps) {
       await updateVocabularySelection(token, vocabularyList.id, Array.from(selectedWordIds), Array.from(selectedUserVocabularyWordIds));
 
       // Get the actual word objects for practice
-      const wordsForPractice = vocabularyWords.filter(word => selectedWordIds.has(word.id));
+      const wordsForPractice = vocabularyWords.filter(word => selectedWordIds.has(String(word.id)));
       const userWordsForPractice = userVocabularyWords.filter(userWord => selectedUserVocabularyWordIds.has(userWord.id));
       
       // Navigate to practice page with data
@@ -268,7 +269,7 @@ export default function Vocabulary({ token }: VocabularyProps) {
     }
 
     // Filter by theme
-    if (selectedTheme && !word.theme.some(theme => String(theme.id) === String(selectedTheme))) {
+    if (selectedTheme !== null && word.theme.some(theme => String(theme.id) === String(selectedTheme))) {
       return false;
     }
 
@@ -278,6 +279,32 @@ export default function Vocabulary({ token }: VocabularyProps) {
     }
 
     return true;
+  });
+
+  const filteredUserVocabularyWords = (Array.isArray(userVocabularyWords) ? userVocabularyWords : []).filter(userWord => {
+    // Filter by language - check if user word's level matches any language level with selected language
+    if (selectedLanguage !== null) {
+      // This filter might need adjustment based on your data structure
+      // If you want to filter by language, you'd need language info in vocabulary words
+      // For now, skipping this filter as word.level.id is a level ID, not language ID
+    }
+    if (selectedTheme !== null && userWord.vocabulary_word.theme.some(theme => String(theme.id) === String(selectedTheme))) {
+      return false;
+    }
+
+    if (selectedStatus === 'all') {
+      return true;
+    }
+    if (selectedStatus === 'not_learned' && userWord.learning_status === 0) {
+      return true;
+    }
+    if (selectedStatus === 'in_progress' && userWord.learning_status > 0 && userWord.learning_status < 100) {
+      return true;
+    }
+    if (selectedStatus === 'learned' && userWord.learning_status === 100) {
+      return true;
+    }
+    return false;
   });
 
   const selectedLanguageName = selectedLanguage !== null 
@@ -488,14 +515,14 @@ export default function Vocabulary({ token }: VocabularyProps) {
               word={word}
               selectedLanguage={selectedLanguageName !== 'All Languages' ? selectedLanguageName : null}
               learningStatus={0}
-              isSelectedForLearning={selectedWordIds.has(word.id)}
+              isSelectedForLearning={selectedWordIds.has(String(word.id))}
               onClick={() => handleCardClick(word.id)}
             />
           ))}
         </div>
         {/* User Vocabulary Words Grid */}
         <div className="grid bg-red-500 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {userVocabularyWords.map(userWord => (
+          {filteredUserVocabularyWords.map(userWord => (
             <VocabularyWordCard
               key={userWord.id}
               word={userWord.vocabulary_word}
@@ -507,7 +534,7 @@ export default function Vocabulary({ token }: VocabularyProps) {
           ))}
         </div>
 
-        {filteredWords.length === 0 && (
+        {filteredWords.length === 0 && filteredUserVocabularyWords.length === 0 && (
           <div className="text-center py-12">
             <FaBookOpen className="text-gray-400 text-6xl mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-600 mb-2">No vocabulary words found</h3>
