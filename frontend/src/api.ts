@@ -56,7 +56,10 @@ export async function createChat({ token, theme, scenario, language_level }: Cre
     const text = await response.text().catch(() => '')
     throw new Error(`Failed to create chat (${response.status}): ${text || response.statusText}`)
   }
-  return response.json()
+  const data = await response.json()
+  console.log('Chat created:', data)
+  
+  return data
 }
 
 export async function getUserLanguageLevels(token: string): Promise<LanguageLevel[]> {
@@ -153,7 +156,7 @@ export type JSONAPITheme = {
   scenarios: Scenario[]
 }
 
-export async function getPracticeSetupData(token: string): Promise<{themes: JSONAPITheme[], language_levels: LanguageLevel[]}> {
+export async function getPracticeSetupData(token: string): Promise< {themes: JSONAPITheme[], language_levels: LanguageLevel[]}> {
   console.log('Making API call to /api/practice-setup/ with token:', token ? 'present' : 'missing')
   const response = await fetch('/api/practice-setup/', {
     method: 'GET',
@@ -169,8 +172,8 @@ export async function getPracticeSetupData(token: string): Promise<{themes: JSON
     throw new Error(`Failed to fetch practice setup data (${response.status}): ${text || response.statusText}`)
   }
   const data = await response.json()
-  console.log('API response data:', data)
-  return data
+  console.log('API response data:', data.data)
+  return data.data
 }
 
 // Dashboard API types

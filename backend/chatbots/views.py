@@ -14,6 +14,7 @@ from .models import Chat
 from conversations.models import Theme, Scenario
 from users.models import LanguageLevel
 from .chatbots import ConversationBot
+from rest_framework.renderers import JSONRenderer
 
 class ChatAPIVIewSet(
     GenericViewSet,
@@ -26,7 +27,9 @@ class ChatAPIVIewSet(
     authentication_classes = [TokenAuthentication]
     permission_classes=(IsAuthenticated,)
     serializer_class = ChatModelSerializer
-
+    renderer_classes = [JSONRenderer]
+    parser_classes = [JSONParser]
+    
     def get_queryset(self):
         """
         This view should return a list of all the Chats

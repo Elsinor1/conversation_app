@@ -1,6 +1,8 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { postChatMessage } from '../api'
+import { postChatMessage, getVocabularyWords, getUserLanguageLevels, type VocabularyWord, type LanguageLevel } from '../api'
+import VocabularySidebar from './VocabularySidebar'
+import ScenarioInfoSidebar from './ScenarioInfoSidebar'
 
 type Message = { role: 'assistant' | 'user'; text: string }
 
@@ -13,11 +15,61 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [vocabularyWords, setVocabularyWords] = useState<VocabularyWord[]>([])
+  const [languageLevels, setLanguageLevels] = useState<LanguageLevel[]>([])
+  const [vocabLoading, setVocabLoading] = useState(true)
   const inputRef = useRef<HTMLInputElement | null>(null)
   
   const chatId = searchParams.get('chat-id')
   const theme = searchParams.get('theme')
   const scenario = searchParams.get('scenario')
+  const languageLevel = searchParams.get('language-level')
+
+  // Fetch vocabulary words and language levels
+  useEffect(() => {
+    const fetchVocabData = async () => {
+      try {
+        setVocabLoading(true)
+        const [words, levels] = await Promise.all([
+          getVocabularyWords(token),
+          getUserLanguageLevels(token)
+        ])
+        setVocabularyWords(Array.isArray(words) ? words : [])
+        setLanguageLevels(Array.isArray(levels) ? levels : [])
+      } catch (err) {
+        console.error('Error fetching vocabulary data:', err)
+      } finally {
+        setVocabLoading(false)
+      }
+    }
+
+    if (token) {
+      fetchVocabData()
+    }
+  }, [token])
+
+  // Filter vocabulary words by theme and language level
+  const filteredVocabularyWords = useMemo(() => {
+    return vocabularyWords.filter(word => {
+      // Filter by theme
+      if (theme) {
+        const hasMatchingTheme = word.theme.some(t => String(t.id) === String(theme))
+        if (!hasMatchingTheme) {
+          return false
+        }
+      }
+      
+      // Filter by language level if available
+      if (languageLevel && languageLevels.length > 0) {
+        const selectedLangLevel = languageLevels.find(ll => ll.id.toString() === languageLevel)
+        if (selectedLangLevel && word.level.id !== selectedLangLevel.level.id) {
+          return false
+        }
+      }
+      
+      return true
+    })
+  }, [vocabularyWords, theme, languageLevel, languageLevels])
 
   const canSend = useMemo(() => {
     return !!token && !!chatId && !isLoading
@@ -46,18 +98,18 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
   }, [canSend, chatId, input, token])
 
   return (
-    <div className="min-h-screen bg-gray-50 py-4 ml-18">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-4 ml-18 relative">
       <div className="max-w-7xl mx-auto px-3">
         <div className="flex justify-center">
           <div className="w-full max-w-4xl">
-            <div className="bg-white rounded-lg shadow-lg">
-              <div className="bg-blue-600 text-white px-6 py-4 rounded-t-lg">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-secondary to-tertiary text-white px-6 py-4">
                 <div className="flex justify-between items-center">
                   <h1 className="text-xl font-semibold">Chat Interface</h1>
                   {(theme || scenario) && (
                     <div className="text-right">
-                      {theme && <div className="text-sm opacity-75">Theme: {theme}</div>}
-                      {scenario && <div className="text-sm opacity-75">Scenario: {scenario}</div>}
+                      {theme && <div className="text-sm text-blue-100 opacity-90">Theme: {theme}</div>}
+                      {scenario && <div className="text-sm text-blue-100 opacity-90">Scenario: {scenario}</div>}
                     </div>
                   )}
                 </div>
@@ -144,6 +196,20 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
           </div>
         </div>
       </div>
+
+      {/* Scenario Information Sidebar - Left */}
+      <ScenarioInfoSidebar
+        scenarioId={scenario}
+        theme={theme}
+      />
+
+      {/* Vocabulary Words Sidebar - Right */}
+      <VocabularySidebar
+        vocabularyWords={filteredVocabularyWords}
+        selectedLanguageLevel={languageLevel || ''}
+        selectedTheme={theme || ''}
+        isLoading={vocabLoading}
+      />
     </div>
   )
 }

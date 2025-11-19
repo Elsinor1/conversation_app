@@ -93,24 +93,6 @@ function App() {
             }
           />
           <Route
-            path="/speech-practice-setup"
-            element={<Navigate to="/speech-practice-setup" replace />}
-          />
-          <Route
-            path="/speech-practice"
-            element={
-              isAuthenticated ? (
-                <>
-                  <TopBar isAuthenticated={isAuthenticated} setIsAuthenticated={handleLogout} />
-                  <Navigation isAuthenticated={isAuthenticated} />
-                  <SpeechPracticeChat token={token} />
-                </>
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-          <Route
             path="/language/:languageName"
             element={
               isAuthenticated ? (

@@ -90,7 +90,7 @@ class PracticeSetupAPIView(APIView):
                 'language_levels': language_levels_serializer.data
             }
             
-            print('Practice setup data:', response_data)
+            # print('Practice setup data:', response_data)
             return Response(response_data, status=status.HTTP_200_OK)
             
         except Exception as e:

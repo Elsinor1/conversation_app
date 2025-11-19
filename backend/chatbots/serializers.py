@@ -14,6 +14,7 @@ class ChatModelSerializer(serializers.ModelSerializer):
     class Meta():
         model = Chat
         fields = (
+            "id",
             "theme",
             "scenario",
             "language_level"

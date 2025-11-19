@@ -76,8 +76,8 @@ export default function SpeechPracticeSetup({ token }: SpeechPracticeSetupProps)
       
       console.log('Chat created:', chatResponse)
       
-      // Navigate to practice chat with the new chat ID
-      navigate(`/practice?chat-id=${chatResponse.id}`)
+      // Navigate to practice chat with the new chat ID, theme, and language level
+      navigate(`/speech-practice?chat-id=${chatResponse.id}&theme=${selectedTheme}&language-level=${selectedLanguageLevel}`)
       
     } catch (err: any) {
       console.error('Error creating chat:', err)
@@ -94,11 +94,11 @@ export default function SpeechPracticeSetup({ token }: SpeechPracticeSetupProps)
   const filteredScenarios = selectedThemeData?.scenarios || []
 
   // Debug logging
-  console.log('Debug - selectedTheme:', selectedTheme)
-  console.log('Debug - themes:', themes)
-  console.log('Debug - themes length:', themes.length)
-  console.log('Debug - first theme:', themes[0])
-  console.log('Debug - filteredScenarios:', filteredScenarios)
+  // console.log('Debug - selectedTheme:', selectedTheme)
+  // console.log('Debug - themes:', themes)
+  // console.log('Debug - themes length:', themes.length)
+  // console.log('Debug - first theme:', themes[0])
+  // console.log('Debug - filteredScenarios:', filteredScenarios)
 
   return (
     <div className="h-screen bg-gradient-to-br from-blue-50 to-indigo-100 ml-18 overflow-hidden flex flex-col relative">
@@ -352,9 +352,10 @@ export default function SpeechPracticeSetup({ token }: SpeechPracticeSetupProps)
         </div>
       </div>
 
+
       {/* Debug Info Sidebar - Absolutely positioned */}
       {!isLoading && !error && (
-        <div className="absolute top-2 right-4 w-80 h-[calc(100vh-1rem)] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
+        <div className="absolute top-2 right-[22rem] w-80 h-[calc(100vh-1rem)] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
           <div className="bg-yellow-500 text-white px-4 py-2 flex-shrink-0">
             <h3 className="text-sm font-semibold">Debug Information</h3>
           </div>
