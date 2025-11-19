@@ -350,19 +350,23 @@ export default function Vocabulary({ token }: VocabularyProps) {
 
   return (
     <div className="bg-white min-h-screen">
-      <div className="ml-18 pt-16 p-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-            <FaBookOpen className="text-blue-600" />
-            Vocabulary
-          </h1>
-          <p className="text-gray-600">Manage and track your vocabulary learning progress</p>
+      <div className="ml-18 pt-4 p-4">
+        {/* Header Section */}
+        <div className="text-center mb-4">
+          <div className="flex items-center justify-center mb-2">
+            <div className="bg-blue-600 p-2 rounded-full">
+              <FaBookOpen className="h-6 w-6 text-white" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-1">Vocabulary</h1>
+          <p className="text-base text-gray-600 max-w-2xl mx-auto">
+            Manage and track your vocabulary learning progress
+          </p>
         </div>
 
         {/* Filters */}
-        <div className="bg-gray-50 rounded-lg p-6 mb-8">
-          <div className="flex flex-wrap gap-4 items-center">
+        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+          <div className="flex flex-wrap gap-3 items-center">
             {/* Language Dropdown */}
             <div className="relative dropdown-container">
               <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
@@ -521,7 +525,7 @@ export default function Vocabulary({ token }: VocabularyProps) {
           ))}
         </div>
         {/* User Vocabulary Words Grid */}
-        <div className="grid bg-red-500 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredUserVocabularyWords.map(userWord => (
             <VocabularyWordCard
               key={userWord.id}

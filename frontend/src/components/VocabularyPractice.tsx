@@ -398,14 +398,16 @@ export default function VocabularyPractice() {
                   setCorrectAnswer('');
                 }
               }}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter' && !isChecked) {
+                  e.preventDefault();
                   handleCheck();
                 } else if (e.key === 'Enter' && isChecked) {
+                  e.preventDefault();
                   handleNext();
                 }
               }}
-              disabled={isChecked}
+              readOnly={isChecked}
               className={`w-full px-4 py-2 text-lg border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 getInputBorderClass()
               } ${isChecked ? 'bg-gray-100' : 'bg-white'}`}

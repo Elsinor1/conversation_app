@@ -565,18 +565,23 @@ export async function updateVocabularyWordScores(
   token: string,
   scoreUpdates: VocabularyWordScoreUpdate[],
 ): Promise<void> {
-  const url = '/user-vocabulary-word/bulk-update/';
+  const effectiveToken = token || getStoredToken() || ''
+  if (!effectiveToken) {
+    throw new Error('No authentication token provided')
+  }
+  
+  const url = '/api/user-vocabulary-word/bulk-update/';
   const method = 'PUT';
   const headers = {
     'Content-Type': 'application/json',
-    Authorization: `Token ${token}`,
+    Authorization: `Token ${effectiveToken}`,
   };
   const body = JSON.stringify(scoreUpdates);
   
   // Print curl command for easy testing
   // Use backend URL directly (port 8000) since frontend proxy won't work for curl
   const backendUrl = 'http://localhost:8000';
-  const curlCommand = `curl -X ${method} '${backendUrl}${url}' \\\n` +
+  const curlCommand = `curl -X ${method} '${backendUrl}${url.replace(/^\/api/, "")}' \\\n` +
     Object.entries(headers).map(([key, value]) => `  -H '${key}: ${value}'`).join(' \\\n') +
     ` \\\n  -d '${body.replace(/'/g, "'\\''")}'`;
   console.log('Curl command for testing (use backend port 8000):\n', curlCommand);
@@ -586,13 +591,14 @@ export async function updateVocabularyWordScores(
     headers,
     body,
   })
-  console.log('Score update response:', response)
+  console.log('Score update response status:', response.status, response.statusText)
   if (!response.ok) {
     const text = await response.text().catch(() => '')
+    console.error('Score update error response:', text)
     throw new Error(`Failed to update vocabulary word scores (${response.status}): ${text || response.statusText}`)
   }
   const data = await response.json()
-  console.log('Score update response:', data)
+  console.log('Score update response data:', data)
 }
 
 
