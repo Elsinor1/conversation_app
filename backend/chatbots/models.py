@@ -26,3 +26,23 @@ class Chat(
 
     def __str__(self):
         return f"Chat by {self.user.username} id: {self.id}"
+
+class ChatMessage(
+    Model,
+    TimeStampedModel
+):
+    """
+    chatbots.ChatMessage
+    Stores information about chat message. ID is needed for storing chat message data in an SQL database
+    """
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, verbose_name="chat")
+    content = models.TextField(verbose_name="content")
+    role = models.CharField(max_length=20, default="assistant")
+
+    class Meta():
+        verbose_name = "Chat Message"
+        verbose_name_plural = "Chat Messages"
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"Chat message by {self.chat.user.username} id: {self.id}"

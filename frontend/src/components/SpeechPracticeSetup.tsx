@@ -76,8 +76,17 @@ export default function SpeechPracticeSetup({ token }: SpeechPracticeSetupProps)
       
       console.log('Chat created:', chatResponse)
       
-      // Navigate to practice chat with the new chat ID, theme, and language level
-      navigate(`/speech-practice?chat-id=${chatResponse.id}&theme=${selectedTheme}&language-level=${selectedLanguageLevel}`)
+      // Navigate to practice chat with state passed from previous page (full objects for better UX)
+      navigate('/speech-practice', {
+        state: {
+          chatId: chatResponse.id,
+          theme: selectedThemeData, // Pass full theme object
+          scenario: selectedScenarioData, // Pass full scenario object
+          themeId: selectedTheme, // Keep ID for reference
+          scenarioId: selectedScenario, // Keep ID for reference
+          languageLevel: selectedLanguageLevel
+        }
+      })
       
     } catch (err: any) {
       console.error('Error creating chat:', err)
@@ -355,7 +364,7 @@ export default function SpeechPracticeSetup({ token }: SpeechPracticeSetupProps)
 
       {/* Debug Info Sidebar - Absolutely positioned */}
       {!isLoading && !error && (
-        <div className="absolute top-2 right-[22rem] w-80 h-[calc(100vh-1rem)] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
+        <div className="absolute top-2 right-[5rem] w-80 h-[calc(100vh-1rem)] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
           <div className="bg-yellow-500 text-white px-4 py-2 flex-shrink-0">
             <h3 className="text-sm font-semibold">Debug Information</h3>
           </div>

@@ -1,4 +1,4 @@
-from .models import Chat
+from .models import Chat, ChatMessage as ChatMessageModel
 from rest_framework import serializers
 from rest_framework_json_api.serializers import PrimaryKeyRelatedField
 from conversations.models import Theme, Scenario
@@ -25,13 +25,16 @@ class ChatMessagesSerializer(serializers.Serializer):
     """
     Serializer for validating chat_id
     """
-    chat_id = serializers.CharField(max_length=40)
-    message = serializers.CharField(max_length=500, required=False)
+    chat_id = PrimaryKeyRelatedField(queryset=Chat.objects.all(), many=False)
+    message = serializers.CharField(max_length=500, write_only=True, required=False)
 
-    def validate_chat_id(self, id):
-        """"
-        Validates that chat_id exists in the database
-        """
-        if not Chat.objects.get(pk=id):
-            raise serializers.ValidationError("Chat ID does not exists in the DB")
-        return id
+class ChatMessageModelSerializer(serializers.ModelSerializer):
+    """
+    Serializer for ChatMessage model
+    """
+    
+
+    class Meta():
+        model = ChatMessageModel
+        fields = ("id", "chat", "content", "role")
+        read_only_fields = ("id", "chat", "content", "role")

@@ -6,22 +6,12 @@ from langchain_openai import ChatOpenAI
 from users.models import User
 from conversations.models import Theme, Scenario
 from users.models import LanguageLevel
-from .models import Chat
+from .models import Chat, ChatMessage as ChatMessageModel
 from django.conf import settings
 from dataclasses import dataclass
 from sqlalchemy import create_engine
 import uuid
 
-@dataclass
-class ChatMessage:
-    """
-    Stores chat objects and response from chatbot
-    parameters:
-        chat :users.models.Chat:
-        message :str:
-    """
-    chat: Chat
-    message: str
 
 class ConversationBot:
     """
@@ -76,7 +66,7 @@ class ConversationBot:
             print("Conversation bot could not get response", e)
             return None
 
-    def start_chat(self, chat: Chat)-> ChatMessage:
+    def start_chat(self, chat: Chat)-> ChatMessageModel:
         """
         Starts a conversation with the user about given theme and scenario. Takes in account User's language level. 
         Chat should use start_chat for the first message. For following messages use continue_chat method
@@ -92,20 +82,23 @@ class ConversationBot:
         response = self.get_response(session_id=chat.id, human_message=human_message, system_message=system_message)
         
         if response:
-            return ChatMessage(chat, response.content)
-        else:
-            return None
+            chat_message = ChatMessageModel.objects.create(chat=chat, content=response.content, role="assistant")
+            return chat_message
+        return None
 
-    def continue_chat(self, chat: Chat, human_message: str)-> ChatMessage:
+    def continue_chat(self, chat: Chat, human_message: str)-> ChatMessageModel:
         """
         Continues a chat with user passing human reply to the chatbot
         """
         response = self.get_response(session_id=chat.id, human_message=human_message)
         
         if response:
-            return ChatMessage(chat, response.content)
-        else:
-            return None
+            # Save user message
+            ChatMessageModel.objects.create(chat=chat, content=human_message, role="user")
+            # Save and return assistant response
+            chat_message = ChatMessageModel.objects.create(chat=chat, content=response.content, role="assistant")
+            return chat_message
+        return None
     
     def delete_chat(self, chat: Chat):
         """

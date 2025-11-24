@@ -21,9 +21,47 @@ export async function postChatMessage({ token, chatId, message }: PostChatMessag
     throw new Error(`Request failed (${response.status}): ${text || response.statusText}`);
   }
 
-  // Endpoint returns plain message string
-  const data = await response.text();
-  return data;
+  // Get response text
+  const data = await response.json();
+  
+  return data.data;
+}
+
+export type ChatMessage = {
+  role: 'assistant' | 'user'
+  text: string
+}
+
+export async function getChatMessages(token: string, chatId: string): Promise<ChatMessage[]> {
+  const effectiveToken = token || getStoredToken() || ''
+  const url = `/api/chat/${chatId}/messages/`
+  
+  console.log('[getChatMessages] Fetching messages:', { url, chatId, token: effectiveToken ? 'present' : 'missing' })
+  
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Token ${effectiveToken}`,
+      },
+    });
+
+    console.log('[getChatMessages] Response status:', response.status, response.statusText)
+    
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      console.error('[getChatMessages] Error response:', { status: response.status, text })
+      throw new Error(`Failed to fetch chat messages (${response.status}): ${text || response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('[getChatMessages] Success, received data:', data)
+    return Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('[getChatMessages] Exception:', error)
+    throw error
+  }
 }
 
 export type CreateChatParams = {
@@ -454,6 +492,63 @@ export async function getThemes(token: string): Promise<VocabularyTheme[]> {
   const data = await response.json()
   console.log('Themes API response:', typeof data, data)
   
+  return data
+}
+
+export async function getThemeById(token: string, themeId: string): Promise<JSONAPITheme> {
+  const response = await fetch(`/api/theme/${themeId}/`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    },
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to fetch theme (${response.status}): ${text || response.statusText}`)
+  }
+  const data = await response.json()
+  // Handle both JSON:API format and plain format
+  if (data.data) {
+    return data.data
+  }
+  if (data.attributes) {
+    return {
+      id: data.id,
+      title: data.attributes.title || data.title,
+      description: data.attributes.description || data.description,
+      scenarios: data.attributes.scenarios || data.scenarios || []
+    }
+  }
+  return data
+}
+
+export async function getScenarioById(token: string, scenarioId: string): Promise<Scenario> {
+  const response = await fetch(`/api/scenario/${scenarioId}/`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    },
+  })
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to fetch scenario (${response.status}): ${text || response.statusText}`)
+  }
+  const data = await response.json()
+  // Handle both JSON:API format and plain format
+  if (data.data) {
+    return data.data
+  }
+  if (data.attributes) {
+    return {
+      id: data.id,
+      title: data.attributes.title || data.title,
+      description: data.attributes.description || data.description,
+      teacher_role: data.attributes.teacher_role || data.teacher_role,
+      student_role: data.attributes.student_role || data.student_role
+    }
+  }
   return data
 }
 

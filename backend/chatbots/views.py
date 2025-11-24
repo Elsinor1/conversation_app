@@ -9,8 +9,8 @@ from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.response import Response
 
-from .serializers import ChatModelSerializer, ChatMessagesSerializer
-from .models import Chat
+from .serializers import ChatModelSerializer, ChatMessagesSerializer, ChatMessageModelSerializer
+from .models import Chat, ChatMessage as ChatMessageModel
 from conversations.models import Theme, Scenario
 from users.models import LanguageLevel
 from .chatbots import ConversationBot
@@ -94,4 +94,40 @@ class ChatMessagesAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             chatbot_message = chatbot.continue_chat(chat=chat, human_message=data["message"])
-        return Response(chatbot_message.message, status=status.HTTP_200_OK)
+        return Response(chatbot_message.content, status=status.HTTP_200_OK)
+
+    def get(self, request, chat_id):
+        """
+        Retrieve chat messages for a given chat_id from URL parameter
+        Created by cursor!
+        """
+        try:
+            # Verify chat exists and belongs to user
+            try:
+                chat = Chat.objects.get(pk=chat_id, user=request.user)
+            except Chat.DoesNotExist:
+                return JsonResponse({
+                    "result": "error",
+                    "message": "Chat not found or access denied"
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Get messages
+            messages = ChatMessageModel.objects.filter(chat=chat)
+            
+            serializer = ChatMessageModelSerializer(messages, many=True)
+            
+            # Transform to match frontend format: { role, text }
+            formatted_messages = []
+            for msg_data in serializer.data:
+                formatted_messages.append({
+                    'role': msg_data.get('role', 'assistant'),
+                    'text': msg_data.get('text') or msg_data.get('content', '')
+                })
+            
+            return Response(formatted_messages, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return JsonResponse({
+                "result": "error",
+                "message": f"Internal server error: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
