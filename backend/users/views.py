@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import views, status
 from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
-from .serializers import UserSerializer, LanguageLevelSerializer
+from .serializers import UserSerializer, LanguageLevelSerializerIn, LanguageLevelSerializerOut
 from json import JSONDecodeError
 from django.http import JsonResponse
 from rest_framework.exceptions import ValidationError
@@ -99,7 +99,7 @@ class LanguageLevelsAPIView(views.APIView):
         """Get language levels for the authenticated user"""
         user = request.user
         language_levels = LanguageLevel.objects.filter(user=user)
-        serializer = LanguageLevelSerializer(language_levels, many=True)
+        serializer = LanguageLevelSerializerOut(language_levels, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
@@ -107,14 +107,15 @@ class LanguageLevelsAPIView(views.APIView):
         user = request.user
         data = JSONParser().parse(request)
         print(f"Received data: {data}")
-        data['user'] = user.id  
-        print(f"Data with user: {data}")
-        serializer = LanguageLevelSerializer(data=data)
+        # Use input serializer for validation
+        serializer = LanguageLevelSerializerIn(data=data)
         print(f"Serializer is valid: {serializer.is_valid()}")
         if serializer.is_valid(raise_exception=True):
-            serializer.save()
-            
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # Save with user from request (not from data)
+            language_level = serializer.save(user=user)
+            # Use output serializer for response
+            output_serializer = LanguageLevelSerializerOut(language_level)
+            return Response(output_serializer.data, status=status.HTTP_201_CREATED)
         else:
             print(f"Serializer errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -128,11 +129,14 @@ class LanguageLevelsAPIView(views.APIView):
             return Response({"error": "Language level not found"}, status=status.HTTP_404_NOT_FOUND)
         
         data = JSONParser().parse(request)
-        data['user'] = user.id  
-        serializer = LanguageLevelSerializer(language_level, data=data)
+        # Use input serializer for validation
+        serializer = LanguageLevelSerializerIn(language_level, data=data)
         if serializer.is_valid(raise_exception=True):
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            # Save with user from request (not from data)
+            updated_level = serializer.save(user=user)
+            # Use output serializer for response
+            output_serializer = LanguageLevelSerializerOut(updated_level)
+            return Response(output_serializer.data, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

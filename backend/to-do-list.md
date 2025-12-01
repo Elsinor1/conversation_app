@@ -1,12 +1,27 @@
 ### TO DO LIST
 
-1 Registering only with invitation code
- 5 Improve lanugage data, words, scenarios and so on 
- Learning progress tree
- 4 Gamification - streaks, currency
- 2 Speech to text module
- Avatars
- 4 Helper bot - buddy "ask a buddy, with common questions"
- Release to server??
+# To-Do List
+
+## Completed ✅
+- [x] Registering only with invitation code
+
+## High Priority (Priority 2)
+- [ ] Speech to text module
+
+## Medium Priority (Priority 4)
+- [ ] Gamification - streaks, currency
+- [ ] Helper bot - buddy "ask a buddy, with common questions"
+
+## Low Priority (Priority 5)
+- [ ] Improve language data, words, scenarios and so on
+- [ ] Improve scenarios - have tasks to communicate, words to use
+
+## Future Features
+- [ ] Learning progress tree
+- [ ] Avatars
+- [ ] Add a bot for scenario completion check
+
+## Deployment
+- [ ] Release to server??
 
 

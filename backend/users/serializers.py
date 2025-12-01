@@ -42,10 +42,14 @@ class LevelSerializer(serializers.ModelSerializer):
             "name"
         )
 
-class LanguageLevelSerializer(serializers.ModelSerializer):
-    """Serializer for LanguageLevel model"""
-    language = LanguageSerializer()
-    level = LevelSerializer()
+class LanguageLevelSerializerIn(serializers.ModelSerializer):
+    """
+    Input serializer for LanguageLevel - accepts IDs for foreign keys
+    Used for POST/PUT requests
+    """
+    language = serializers.PrimaryKeyRelatedField(queryset=Language.objects.all())
+    level = serializers.PrimaryKeyRelatedField(queryset=Level.objects.all())
+    user = serializers.PrimaryKeyRelatedField(read_only=True)  # Set from request.user in view
 
     class Meta:
         model = LanguageLevel
@@ -55,5 +59,30 @@ class LanguageLevelSerializer(serializers.ModelSerializer):
             "language",
             "level", 
             "progress"
-        )    
+        )
+        read_only_fields = ("id", "user")  # User is set from request, id is auto-generated
+
+
+class LanguageLevelSerializerOut(serializers.ModelSerializer):
+    """
+    Output serializer for LanguageLevel - returns nested objects
+    Used for GET requests
+    """
+    language = LanguageSerializer(read_only=True)
+    level = LevelSerializer(read_only=True)
+
+    class Meta:
+        model = LanguageLevel
+        fields = (
+            "id",
+            "user",
+            "language",
+            "level", 
+            "progress"
+        )
+        read_only_fields = ("id", "user", "language", "level", "progress")
+
+
+# Alias for backward compatibility - use specific In/Out serializers in views
+LanguageLevelSerializer = LanguageLevelSerializerOut    
   
