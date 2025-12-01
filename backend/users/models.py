@@ -7,6 +7,16 @@ from django_extensions.db.models import (
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
 import uuid
+
+class InvitationCode(Model):
+    """
+    users.InvitationCode
+    Stores an invitation code.
+    """
+    code = models.CharField(max_length=255)
+
+
+
 class User(AbstractUser, ActivatorModel, TimeStampedModel):
     """
     users.User

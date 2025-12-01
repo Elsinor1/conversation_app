@@ -16,6 +16,7 @@ export default function Register({ onLogin }: RegisterProps) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [invitationCode, setInvitationCode] = useState('')
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,10 +37,10 @@ export default function Register({ onLogin }: RegisterProps) {
     setError('')
 
     try {
-      const response = await register({ username, password, email: email || undefined })
+      const response = await register({ username, password, email: email || undefined, invitationCode: invitationCode || undefined })
       setStoredToken(response.token)
       onLogin(response.token)
-      navigate('/speech-practice')
+      navigate('/')
     } catch (err: any) {
       setError(err?.message || 'Registration failed')
     } finally {
@@ -107,6 +108,17 @@ export default function Register({ onLogin }: RegisterProps) {
             placeholder="Confirm your password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+
+<Input
+            id="invitationCode"
+            name="invitationCode"
+            type="text"
+            label="Invitation Code"
+            placeholder="Enter your invitation code"
+            value={invitationCode}
+            onChange={(e) => setInvitationCode(e.target.value)}
             required
           />
 

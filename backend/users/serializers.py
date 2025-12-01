@@ -6,13 +6,14 @@ from .models import User, LanguageLevel, Language, Level
 class UserSerializer(serializers.ModelSerializer):
     """Base serializer for default User model"""
 
-    
+    invitation_code = serializers.CharField(required=False)
     class Meta:
         model = User
         fields = (
             "username",
             "email",
-            "password"
+            "password",
+            "invitation_code"
         )
         extra_kwargs = {'password': {'write_only': True}} # Ensures password won't be written as output from API
 

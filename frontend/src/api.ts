@@ -155,14 +155,14 @@ export async function login({ username, password }: LoginParams): Promise<LoginR
   return response.json()
 }
 
-export type RegisterParams = { username: string; password: string; email?: string }
+export type RegisterParams = { username: string; password: string; email?: string; invitationCode?: string }
 export type RegisterResponse = { token: string; user: { id: number; username: string; email: string } }
 
-export async function register({ username, password, email }: RegisterParams): Promise<RegisterResponse> {
+export async function register({ username, password, email, invitationCode }: RegisterParams): Promise<RegisterResponse> {
   const response = await fetch('/api/register/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, email }),
+    body: JSON.stringify({ username, password, email, invitationCode }),
   })
   if (!response.ok) {
     const text = await response.text().catch(() => '')

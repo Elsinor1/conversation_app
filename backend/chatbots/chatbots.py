@@ -87,7 +87,7 @@ class ConversationBot:
         return None
 
     def continue_chat(self, chat: Chat, human_message: str)-> ChatMessageModel:
-        """
+        """ 
         Continues a chat with user passing human reply to the chatbot
         """
         response = self.get_response(session_id=chat.id, human_message=human_message)
