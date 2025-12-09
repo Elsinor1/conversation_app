@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
-import { postChatMessage, getChatMessages, getVocabularyWords, getUserLanguageLevels, getThemeById, getScenarioById, type VocabularyWord, type LanguageLevel, type JSONAPITheme, type Scenario } from '../api'
+import { postChatMessage, getChatMessages, getVocabularyWords, getUserLanguageLevels, getThemeById, getScenarioById, speechToText, getVoiceSample, type VocabularyWord, type LanguageLevel, type JSONAPITheme, type Scenario } from '../api'
 import VocabularySidebar from './VocabularySidebar'
 import ScenarioInfoSidebar from './ScenarioInfoSidebar'
 
@@ -39,7 +39,10 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
   const [themeData, setThemeData] = useState<JSONAPITheme | null>(state?.theme || null)
   const [scenarioData, setScenarioData] = useState<Scenario | null>(state?.scenario || null)
   const [dataLoading, setDataLoading] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
   const hasFetchedInitialMessage = useRef(false)
   const hasFetchedVocab = useRef(false)
   const hasFetchedMessages = useRef(false)
@@ -269,6 +272,37 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
     }
   }, [token, chatId])
 
+  // Helper function to map language name to Azure speech recognition language code
+  const getSpeechLanguageCode = useCallback((): string => {
+    if (!languageLevel || languageLevels.length === 0) {
+      return 'en-US' // Default to English
+    }
+    
+    const selectedLangLevel = languageLevels.find(ll => ll.id.toString() === languageLevel)
+    if (!selectedLangLevel?.language?.name) {
+      return 'en-US' // Default to English if no language found
+    }
+    
+    const languageName = selectedLangLevel.language.name.toLowerCase()
+    
+    // Map language names to Azure speech recognition codes
+    const languageMap: Record<string, string> = {
+      'english': 'en-US',
+      'spanish': 'es-ES',
+      'french': 'fr-FR',
+      'german': 'de-DE',
+      'italian': 'it-IT',
+      'portuguese': 'pt-BR',
+      'japanese': 'ja-JP',
+      'chinese': 'zh-CN',
+      'chinese (simplified)': 'zh-CN',
+      'chinese (traditional)': 'zh-TW',
+      'czech': 'cs-CZ',
+    }
+    
+    return languageMap[languageName] || 'en-US' // Default to English if mapping not found
+  }, [languageLevel, languageLevels])
+
   // Filter vocabulary words by theme and language level
   const filteredVocabularyWords = useMemo(() => {
     return vocabularyWords.filter(word => {
@@ -318,6 +352,201 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
       inputRef.current?.focus()
     }
   }, [canSend, chatId, input, token])
+
+  const startRecording = useCallback(async () => {
+    try {
+      // Check if MediaRecorder is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('MediaRecorder API is not supported in this browser')
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      
+      // Try to find a supported mime type
+      let mimeType = 'audio/webm;codecs=opus'
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        // Try alternatives
+        const alternatives = [
+          'audio/webm',
+          'audio/ogg;codecs=opus',
+          'audio/mp4',
+          'audio/wav'
+        ]
+        mimeType = alternatives.find(type => MediaRecorder.isTypeSupported(type)) || ''
+      }
+      
+      const options = mimeType ? { mimeType } : undefined
+      const mediaRecorder = new MediaRecorder(stream, options)
+      
+      audioChunksRef.current = []
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+      
+      mediaRecorder.onstop = async () => {
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach(track => track.stop())
+        
+        // Convert webm to wav format
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        
+        // Convert to WAV format
+        try {
+          const audioContext = new AudioContext()
+          const arrayBuffer = await audioBlob.arrayBuffer()
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+          
+          // Convert AudioBuffer to WAV
+          const wavBlob = audioBufferToWav(audioBuffer)
+          
+          // Send to speech recognition API
+          setIsLoading(true)
+          const speechLanguage = getSpeechLanguageCode()
+          const recognizedText = await speechToText({ 
+            token, 
+            audio: wavBlob,
+            language: speechLanguage
+          })
+          
+          console.log('Recognized text:', recognizedText, 'Type:', typeof recognizedText)
+          
+          // Set the recognized text as input and send it
+          if (recognizedText && typeof recognizedText === 'string') {
+            setInput(recognizedText)
+            // Automatically send the message
+            const trimmedText = recognizedText.trim()
+            if (trimmedText && chatId) {
+              setMessages((prev) => [...prev, { role: 'user', text: trimmedText }])
+              const text = await postChatMessage({ token, chatId, message: trimmedText })
+              setMessages((prev) => [...prev, { role: 'assistant', text }])
+            }
+          } else {
+            throw new Error(`Invalid response from speech recognition: ${recognizedText}`)
+          }
+        } catch (err: any) {
+          console.error('Error processing audio:', err)
+          setMessages((prev) => [
+            ...prev,
+            { role: 'assistant', text: `Error: ${err?.message || 'Failed to recognize speech'}` },
+          ])
+        } finally {
+          setIsLoading(false)
+          setIsRecording(false)
+          inputRef.current?.focus()
+        }
+      }
+      
+      mediaRecorderRef.current = mediaRecorder
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch (err: any) {
+      console.error('Error starting recording:', err)
+      alert(`Failed to access microphone: ${err?.message || 'Unknown error'}`)
+    }
+  }, [token, chatId, getSpeechLanguageCode])
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }, [isRecording])
+
+  const toggleRecording = useCallback(() => {
+    if (isRecording) {
+      stopRecording()
+    } else {
+      startRecording()
+    }
+  }, [isRecording, startRecording, stopRecording])
+
+  const testWithSample = useCallback(async () => {
+    if (!canSend || !chatId) return
+    
+    try {
+      setIsLoading(true)
+      // Fetch the sample audio file
+      const audioBlob = await getVoiceSample(token)
+      
+      // Send to speech recognition API
+      const speechLanguage = getSpeechLanguageCode()
+      const recognizedText = await speechToText({ 
+        token, 
+        audio: audioBlob,
+        language: speechLanguage
+      })
+      
+      console.log('Recognized text (sample):', recognizedText, 'Type:', typeof recognizedText)
+      
+      // Set the recognized text as input and send it
+      if (recognizedText && typeof recognizedText === 'string') {
+        setInput(recognizedText)
+        // Automatically send the message
+        const trimmedText = recognizedText.trim()
+        if (trimmedText && chatId) {
+          setMessages((prev) => [...prev, { role: 'user', text: trimmedText }])
+          const text = await postChatMessage({ token, chatId, message: trimmedText })
+          setMessages((prev) => [...prev, { role: 'assistant', text }])
+        }
+      } else {
+        throw new Error(`Invalid response from speech recognition: ${recognizedText}`)
+      }
+    } catch (err: any) {
+      console.error('Error testing with sample:', err)
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', text: `Error: ${err?.message || 'Failed to process sample audio'}` },
+      ])
+    } finally {
+      setIsLoading(false)
+      inputRef.current?.focus()
+    }
+  }, [canSend, chatId, token, getSpeechLanguageCode])
+
+  // Helper function to convert AudioBuffer to WAV Blob
+  const audioBufferToWav = (buffer: AudioBuffer): Blob => {
+    const length = buffer.length
+    const numberOfChannels = buffer.numberOfChannels
+    const sampleRate = buffer.sampleRate
+    const arrayBuffer = new ArrayBuffer(44 + length * numberOfChannels * 2)
+    const view = new DataView(arrayBuffer)
+    
+    // WAV header
+    const writeString = (offset: number, string: string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i))
+      }
+    }
+    
+    writeString(0, 'RIFF')
+    view.setUint32(4, 36 + length * numberOfChannels * 2, true)
+    writeString(8, 'WAVE')
+    writeString(12, 'fmt ')
+    view.setUint32(16, 16, true)
+    view.setUint16(20, 1, true)
+    view.setUint16(22, numberOfChannels, true)
+    view.setUint32(24, sampleRate, true)
+    view.setUint32(28, sampleRate * numberOfChannels * 2, true)
+    view.setUint16(32, numberOfChannels * 2, true)
+    view.setUint16(34, 16, true)
+    writeString(36, 'data')
+    view.setUint32(40, length * numberOfChannels * 2, true)
+    
+    // Convert float samples to 16-bit PCM
+    let offset = 44
+    for (let i = 0; i < length; i++) {
+      for (let channel = 0; channel < numberOfChannels; channel++) {
+        const sample = Math.max(-1, Math.min(1, buffer.getChannelData(channel)[i]))
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true)
+        offset += 2
+      }
+    }
+    
+    return new Blob([arrayBuffer], { type: 'audio/wav' })
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-4 ml-18 relative">
@@ -396,6 +625,39 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
                           if (e.key === 'Enter') send()
                         }}
                       />
+                      <button
+                        disabled={!canSend || isLoading}
+                        onClick={toggleRecording}
+                        className={`px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                          isRecording
+                            ? 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500'
+                            : 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500'
+                        }`}
+                        type="button"
+                        title={isRecording ? 'Stop recording' : 'Start voice input'}
+                      >
+                        {isRecording ? (
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                          </svg>
+                        )}
+                      </button>
+                      <button
+                        disabled={!canSend || isLoading}
+                        onClick={testWithSample}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        type="button"
+                        title="Test with sample audio file"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      </button>
                       <button
                         disabled={!canSend}
                         onClick={send}

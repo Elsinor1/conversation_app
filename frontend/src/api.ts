@@ -699,4 +699,62 @@ export async function updateVocabularyWordScores(
   console.log('Score update response data:', data)
 }
 
+export type SpeechToTextParams = {
+  token: string
+  audio: Blob
+  language?: string
+}
+
+export async function speechToText({ token, audio, language = 'en-US' }: SpeechToTextParams): Promise<string> {
+  const effectiveToken = token || getStoredToken() || ''
+  const formData = new FormData()
+  formData.append('audio', audio, 'recording.wav')
+  formData.append('language', language)
+  
+  const response = await fetch('/api/speech-to-text/', {
+    method: 'POST',
+    headers: {
+      Authorization: `Token ${effectiveToken}`,
+    },
+    body: formData,
+  })
+  
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Speech recognition failed (${response.status}): ${text || response.statusText}`)
+  }
+  
+  const data = await response.json()
+  console.log('Speech recognition API response:', data)
+  
+  // Handle different response structures
+  if (data.text !== undefined) {
+    return data.text
+  } else if (data.data?.text !== undefined) {
+    return data.data.text
+  } else if (typeof data === 'string') {
+    return data
+  } else {
+    console.error('Unexpected response structure:', data)
+    throw new Error(`Unexpected response structure from speech recognition API: ${JSON.stringify(data)}`)
+  }
+}
+
+export async function getVoiceSample(token: string): Promise<Blob> {
+  const effectiveToken = token || getStoredToken() || ''
+  const response = await fetch('/api/voice-sample/', {
+    method: 'GET',
+    headers: {
+      Authorization: `Token ${effectiveToken}`,
+    },
+  })
+  
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`Failed to fetch voice sample (${response.status}): ${text || response.statusText}`)
+  }
+  
+  return response.blob()
+}
+
 

@@ -10,7 +10,6 @@ import struct
 import os
 from django.conf import settings
 from unittest.mock import patch, MagicMock
-from unittest.mock import patch, MagicMock
 
 
 class SpeechToTextTestCase(APITestCase):
@@ -33,7 +32,7 @@ class SpeechToTextTestCase(APITestCase):
         self.token = Token.objects.get(user=self.user)
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
         
-        self.url = '/api/speech-to-text/'
+        self.url = '/speech-to-text/'
         
         # Path to voice sample file
         self.voice_sample_path = os.path.join(
@@ -42,10 +41,31 @@ class SpeechToTextTestCase(APITestCase):
             'gerd_wav.wav'
         )
     
+    def create_test_wav_file(self, duration_seconds=1, sample_rate=16000):
+        """
+        Create a simple test WAV file in memory
+        Returns a BytesIO object with WAV file content
+        """
+        num_samples = int(sample_rate * duration_seconds)
+        wav_buffer = io.BytesIO()
+        
+        with wave.open(wav_buffer, 'wb') as wav_file:
+            wav_file.setnchannels(1)  # Mono
+            wav_file.setsampwidth(2)   # 16-bit
+            wav_file.setframerate(sample_rate)
+            
+            # Generate simple sine wave
+            for i in range(num_samples):
+                value = int(32767 * 0.3 * (i / sample_rate))
+                wav_file.writeframes(struct.pack('<h', value))
+        
+        wav_buffer.seek(0)
+        return wav_buffer
+    
     def get_voice_sample_file(self):
         """
-        Load the actual voice sample file from speech_to_text/voice_sample/gerd_wav
-        Returns a file-like object
+        Load the voice sample file from speech_to_text/voice_sample/gerd_wav.wav
+        Returns a file-like object (file handle or BytesIO)
         """
         if os.path.exists(self.voice_sample_path):
             # Open the actual file
@@ -54,45 +74,19 @@ class SpeechToTextTestCase(APITestCase):
             # Fallback: create a simple test WAV file if voice sample doesn't exist
             return self.create_test_wav_file()
     
-    def create_test_wav_file(self, duration_seconds=1, sample_rate=16000):
-        """
-        Create a simple test WAV file in memory (fallback if voice sample not found)
-        Returns a BytesIO object containing WAV file data
-        """
-        # Create a simple sine wave tone
-        num_samples = int(sample_rate * duration_seconds)
-        frequency = 440  # A4 note
-        
-        # Generate audio samples
-        samples = []
-        for i in range(num_samples):
-            # Simple sine wave
-            value = int(32767 * 0.3 * (i / sample_rate * frequency * 2 * 3.14159))
-            samples.append(struct.pack('<h', value))
-        
-        # Create WAV file in memory
-        wav_buffer = io.BytesIO()
-        
-        with wave.open(wav_buffer, 'wb') as wav_file:
-            wav_file.setnchannels(1)  # Mono
-            wav_file.setsampwidth(2)   # 16-bit
-            wav_file.setframerate(sample_rate)
-            wav_file.writeframes(b''.join(samples))
-        
-        wav_buffer.seek(0)
-        return wav_buffer
     
-    @patch('speech_to_text.views.speechsdk.SpeechRecognizer')
-    @patch('speech_to_text.views.speechsdk.audio.AudioConfig')
-    @patch('speech_to_text.views.speechsdk.SpeechConfig')
-    @patch('speech_to_text.views.os.getenv')
+    
+    @patch('speech_to_text.helpers.speechsdk.SpeechRecognizer')
+    @patch('speech_to_text.helpers.speechsdk.audio.AudioConfig')
+    @patch('speech_to_text.helpers.speechsdk.SpeechConfig')
+    @patch('speech_to_text.helpers.os.getenv')
     def test_speech_to_text_success(self, mock_getenv, mock_speech_config, mock_audio_config, mock_speech_recognizer):
         """Test successful speech recognition"""
         # Mock environment variables
         mock_getenv.side_effect = lambda key, default=None: {
-            'SPEECH_KEY': 'test-key',
-            'SPEECH_REGION': 'westeurope',
-            'AZURE_ENDPOINT': 'https://test.endpoint.com'
+            'azure_speech_api_key': 'test-key',
+            'azure_speech_region': 'westeurope',
+            'azure_speech_endpoint': 'https://test.endpoint.com'
         }.get(key, default)
         
         # Create a mock recognition result
@@ -131,6 +125,7 @@ class SpeechToTextTestCase(APITestCase):
             },
             format='multipart'
         )
+        print(response.data)
         
         # Assertions
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -237,17 +232,17 @@ class SpeechToTextTestCase(APITestCase):
             error_detail = str(response.data[0].get('detail', ''))
             self.assertIn('language', error_detail.lower())
     
-    @patch('speech_to_text.views.speechsdk.SpeechRecognizer')
-    @patch('speech_to_text.views.speechsdk.audio.AudioConfig')
-    @patch('speech_to_text.views.speechsdk.SpeechConfig')
-    @patch('speech_to_text.views.os.getenv')
+    @patch('speech_to_text.helpers.speechsdk.SpeechRecognizer')
+    @patch('speech_to_text.helpers.speechsdk.audio.AudioConfig')
+    @patch('speech_to_text.helpers.speechsdk.SpeechConfig')
+    @patch('speech_to_text.helpers.os.getenv')
     def test_speech_to_text_default_language(self, mock_getenv, mock_speech_config, mock_audio_config, mock_speech_recognizer):
         """Test that default language is used when not provided"""
         # Mock environment variables
         mock_getenv.side_effect = lambda key, default=None: {
-            'SPEECH_KEY': 'test-key',
-            'SPEECH_REGION': 'westeurope',
-            'AZURE_ENDPOINT': 'https://test.endpoint.com'
+            'azure_speech_api_key': 'test-key',
+            'azure_speech_region': 'westeurope',
+            'azure_speech_endpoint': 'https://test.endpoint.com'
         }.get(key, default)
         
         # Mock successful recognition

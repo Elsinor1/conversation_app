@@ -1,0 +1,91 @@
+import os
+import tempfile
+import azure.cognitiveservices.speech as speechsdk
+from django.core.files.uploadedfile import TemporaryUploadedFile, InMemoryUploadedFile
+import dotenv
+
+dotenv.load_dotenv()
+
+def convert_audio_to_text(audio_file, language='en-US'):
+    """
+    Convert audio file to text
+    
+    Why we need a temporary file:
+    1. Django's UploadedFile can be either:
+       - InMemoryUploadedFile (small files, stored in memory, no file path)
+       - TemporaryUploadedFile (large files, stored on disk, but Django manages it)
+    
+    2. Azure Speech SDK's AudioConfig only accepts:
+       - filename= (string path to file on disk)
+       - It does NOT accept file objects, streams, or in-memory files
+    
+    3. Even if TemporaryUploadedFile has a path, we create our own because:
+       - Django may delete it when request ends
+       - We need control over cleanup timing (after Azure SDK finishes)
+       - Ensures consistent behavior regardless of file size
+    """
+    
+    SPEECH_KEY = os.getenv('azure_speech_api_key')
+    # SPEECH_REGION = os.getenv('azure_speech_region', 'westeurope')  # Default region if not set
+    AZURE_ENDPOINT = os.getenv('azure_speech_endpoint')
+    
+    temp_file_path = None
+    created_our_temp_file = False
+    try:
+        # Check if file is already on disk (TemporaryUploadedFile)
+        if isinstance(audio_file, TemporaryUploadedFile) and hasattr(audio_file, 'temporary_file_path'):
+            # File is already on disk, use its path directly
+            # Note: Django manages this file's lifecycle, don't delete it
+            temp_file_path = audio_file.temporary_file_path()
+            created_our_temp_file = False
+            print("temp file path 1: ", temp_file_path)
+        else:
+            # File is in memory (InMemoryUploadedFile) or we need our own copy
+            # Create temporary file to save uploaded audio
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
+                # Write audio file content to temp file
+                for chunk in audio_file.chunks():
+                    temp_file.write(chunk)
+                temp_file_path = temp_file.name
+                created_our_temp_file = True
+                print("temp file path 2: ", temp_file_path)
+        
+        # Configure speech recognition
+        print("creating speech config...")
+        print("speech key: ", SPEECH_KEY)
+        # print("speech region: ", SPEECH_REGION)
+        print("azure endpoint: ", AZURE_ENDPOINT)
+        speech_config = speechsdk.SpeechConfig(subscription=SPEECH_KEY, endpoint=AZURE_ENDPOINT)
+        print("speech config: ", speech_config)
+        speech_config.speech_recognition_language = language
+        print("speech recognition language: ", speech_config.speech_recognition_language)
+        # Use the temporary file path
+        print("creating audio config...")
+        audio_config = speechsdk.audio.AudioConfig(filename=temp_file_path)
+        print("audio config: ", audio_config)
+        print("speech config: ", speech_config)
+        speech_recognizer = speechsdk.SpeechRecognizer(
+            speech_config=speech_config, 
+            audio_config=audio_config
+        )
+        print("speech recognizer: ", speech_recognizer)
+        # Recognize speech
+        print("recognizing speech...")
+        speech_recognition_result = speech_recognizer.recognize_once_async().get()
+        print("speech recognition result: ", speech_recognition_result)
+        if speech_recognition_result.reason == speechsdk.ResultReason.NoMatch:
+            raise Exception("No speech recognized")
+        if speech_recognition_result.reason == speechsdk.ResultReason.Canceled:
+            cancellation_details = speech_recognition_result.cancellation_details
+            raise Exception(f"Speech recognition canceled: {cancellation_details.reason}")
+        return speech_recognition_result.text
+    except Exception as e:
+        raise Exception(f"Error converting audio to text: {str(e)}")
+    finally:
+        # Only delete if we created our own temp file (not Django's TemporaryUploadedFile)
+        # Django manages TemporaryUploadedFile lifecycle, so we don't delete those
+        if created_our_temp_file and temp_file_path and os.path.exists(temp_file_path):
+            try:
+                os.unlink(temp_file_path)
+            except Exception:
+                pass  # Ignore cleanup errors
