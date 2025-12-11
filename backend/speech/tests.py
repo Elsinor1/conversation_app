@@ -64,7 +64,7 @@ class SpeechToTextTestCase(APITestCase):
     
     def get_voice_sample_file(self):
         """
-        Load the voice sample file from speech_to_text/voice_sample/gerd_wav.wav
+        Load the voice sample file from speech/voice_sample/gerd_wav.wav
         Returns a file-like object (file handle or BytesIO)
         """
         if os.path.exists(self.voice_sample_path):
@@ -76,10 +76,10 @@ class SpeechToTextTestCase(APITestCase):
     
     
     
-    @patch('speech_to_text.helpers.speechsdk.SpeechRecognizer')
-    @patch('speech_to_text.helpers.speechsdk.audio.AudioConfig')
-    @patch('speech_to_text.helpers.speechsdk.SpeechConfig')
-    @patch('speech_to_text.helpers.os.getenv')
+    @patch('speech.helpers.speechsdk.SpeechRecognizer')
+    @patch('speech.helpers.speechsdk.audio.AudioConfig')
+    @patch('speech.helpers.speechsdk.SpeechConfig')
+    @patch('speech.helpers.os.getenv')
     def test_speech_to_text_success(self, mock_getenv, mock_speech_config, mock_audio_config, mock_speech_recognizer):
         """Test successful speech recognition"""
         # Mock environment variables
@@ -232,10 +232,10 @@ class SpeechToTextTestCase(APITestCase):
             error_detail = str(response.data[0].get('detail', ''))
             self.assertIn('language', error_detail.lower())
     
-    @patch('speech_to_text.helpers.speechsdk.SpeechRecognizer')
-    @patch('speech_to_text.helpers.speechsdk.audio.AudioConfig')
-    @patch('speech_to_text.helpers.speechsdk.SpeechConfig')
-    @patch('speech_to_text.helpers.os.getenv')
+    @patch('speech.helpers.speechsdk.SpeechRecognizer')
+    @patch('speech.helpers.speechsdk.audio.AudioConfig')
+    @patch('speech.helpers.speechsdk.SpeechConfig')
+    @patch('speech.helpers.os.getenv')
     def test_speech_to_text_default_language(self, mock_getenv, mock_speech_config, mock_audio_config, mock_speech_recognizer):
         """Test that default language is used when not provided"""
         # Mock environment variables

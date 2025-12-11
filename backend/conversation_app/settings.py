@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'conversations',
     'chatbots',
     'vocabulary',
-    'speech_to_text',
+    'speech',
 ]
 
 MIDDLEWARE = [

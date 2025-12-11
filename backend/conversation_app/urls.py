@@ -26,6 +26,6 @@ urlpatterns = [
     path('', include('conversations.urls')),
     path('', include('chatbots.urls')),
     path('', include('vocabulary.urls')),
-    path('', include('speech_to_text.urls')),
+    path('', include('speech.urls')),
 ]
 
