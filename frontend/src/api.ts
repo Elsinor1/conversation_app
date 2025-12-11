@@ -32,11 +32,11 @@ export type ChatMessage = {
   text: string
 }
 
-export async function getChatMessages(token: string, chatId: string): Promise<ChatMessage[]> {
+export async function getChatMessageHistory(token: string, chatId: string): Promise<ChatMessage[]> {
   const effectiveToken = token || getStoredToken() || ''
-  const url = `/api/chat/${chatId}/messages/`
+  const url = `/api/chat/${chatId}/message_history/`
   
-  console.log('[getChatMessages] Fetching messages:', { url, chatId, token: effectiveToken ? 'present' : 'missing' })
+  console.log('[getChatMessageHistory] Fetching message history:', { url, chatId, token: effectiveToken ? 'present' : 'missing' })
   
   try {
     const response = await fetch(url, {
@@ -47,19 +47,51 @@ export async function getChatMessages(token: string, chatId: string): Promise<Ch
       },
     });
 
-    console.log('[getChatMessages] Response status:', response.status, response.statusText)
+    console.log('[getChatMessageHistory] Response status:', response.status, response.statusText)
     
     if (!response.ok) {
       const text = await response.text().catch(() => '');
-      console.error('[getChatMessages] Error response:', { status: response.status, text })
-      throw new Error(`Failed to fetch chat messages (${response.status}): ${text || response.statusText}`);
+      console.error('[getChatMessageHistory] Error response:', { status: response.status, text })
+      throw new Error(`Failed to fetch chat message history (${response.status}): ${text || response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('[getChatMessages] Success, received data:', data)
+    console.log('[getChatMessageHistory] Success, received data:', data)
     return Array.isArray(data) ? data : []
   } catch (error) {
-    console.error('[getChatMessages] Exception:', error)
+    console.error('[getChatMessageHistory] Exception:', error)
+    throw error
+  }
+}
+
+export async function getChatHistory(token: string, chatId: string): Promise<ChatMessage[]> {
+  const effectiveToken = token || getStoredToken() || ''
+  const url = `/api/chat/history/?chat_id=${encodeURIComponent(chatId)}`
+  
+  console.log('[getChatHistory] Fetching chat history:', { url, chatId, token: effectiveToken ? 'present' : 'missing' })
+  
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Token ${effectiveToken}`,
+      },
+    });
+
+    console.log('[getChatHistory] Response status:', response.status, response.statusText)
+    
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      console.error('[getChatHistory] Error response:', { status: response.status, text })
+      throw new Error(`Failed to fetch chat history (${response.status}): ${text || response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('[getChatHistory] Success, received data:', data)
+    return Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('[getChatHistory] Exception:', error)
     throw error
   }
 }

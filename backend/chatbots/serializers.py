@@ -38,3 +38,18 @@ class ChatMessageModelSerializer(serializers.ModelSerializer):
         model = ChatMessageModel
         fields = ("id", "chat", "content", "role")
         read_only_fields = ("id", "chat", "content", "role")
+
+class ChatHistorySerializer(serializers.Serializer):
+    """
+    Serializer for ChatHistory model
+    """
+    chat_id = PrimaryKeyRelatedField(queryset=Chat.objects.all(), many=False)
+    messages = ChatMessageModelSerializer(many=True, read_only=True)
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter queryset by user if request is available in context
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            self.fields['chat_id'].queryset = Chat.objects.filter(user=request.user)
+

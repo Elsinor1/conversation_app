@@ -96,10 +96,18 @@ class ChatMessagesAPIView(APIView):
             chatbot_message = chatbot.continue_chat(chat=chat, human_message=data["message"])
         return Response(chatbot_message.content, status=status.HTTP_200_OK)
 
+class ChatMessageHistoryAPIView(APIView):
+    """
+    API View for getting message history for a specific chat
+    """
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    renderer_classes = [JSONRenderer]
+    parser_classes = [JSONParser]
+
     def get(self, request, chat_id):
         """
-        Retrieve chat messages for a given chat_id from URL parameter
-        Created by cursor!
+        Get message history for a given chat_id from URL parameter
         """
         try:
             # Verify chat exists and belongs to user
@@ -111,8 +119,8 @@ class ChatMessagesAPIView(APIView):
                     "message": "Chat not found or access denied"
                 }, status=status.HTTP_404_NOT_FOUND)
             
-            # Get messages
-            messages = ChatMessageModel.objects.filter(chat=chat)
+            # Get messages for this chat, ordered by creation time
+            messages = ChatMessageModel.objects.filter(chat=chat).order_by('created')
             
             serializer = ChatMessageModelSerializer(messages, many=True)
             
@@ -123,7 +131,7 @@ class ChatMessagesAPIView(APIView):
                     'role': msg_data.get('role', 'assistant'),
                     'text': msg_data.get('text') or msg_data.get('content', '')
                 })
-            
+            # print(formatted_messages)
             return Response(formatted_messages, status=status.HTTP_200_OK)
             
         except Exception as e:

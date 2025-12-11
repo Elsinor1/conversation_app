@@ -76,8 +76,8 @@ export default function SpeechPracticeSetup({ token }: SpeechPracticeSetupProps)
       
       console.log('Chat created:', chatResponse)
       
-      // Navigate to practice chat with state passed from previous page (full objects for better UX)
-      navigate('/speech-practice', {
+      // Navigate to practice chat with chatId in URL and state for theme/scenario data
+      navigate(`/speech-practice/${chatResponse.id}`, {
         state: {
           chatId: chatResponse.id,
           theme: selectedThemeData, // Pass full theme object

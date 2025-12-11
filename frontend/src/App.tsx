@@ -79,7 +79,7 @@ function App() {
             }
           />
           <Route
-            path="/speech-practice"
+            path="/speech-practice/:chatId"
             element={
               isAuthenticated ? (
                 <>

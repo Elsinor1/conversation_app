@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react'
-import { useLocation, useSearchParams } from 'react-router-dom'
-import { postChatMessage, getChatMessages, getVocabularyWords, getUserLanguageLevels, getThemeById, getScenarioById, speechToText, getVoiceSample, type VocabularyWord, type LanguageLevel, type JSONAPITheme, type Scenario } from '../api'
+import { useLocation, useParams, useSearchParams } from 'react-router-dom'
+import { postChatMessage, getChatMessageHistory, getVocabularyWords, getUserLanguageLevels, getThemeById, getScenarioById, speechToText, getVoiceSample, type VocabularyWord, type LanguageLevel, type JSONAPITheme, type Scenario } from '../api'
 import VocabularySidebar from './VocabularySidebar'
 import ScenarioInfoSidebar from './ScenarioInfoSidebar'
 
@@ -27,6 +27,7 @@ interface LocationState {
 
 export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
   const location = useLocation()
+  const params = useParams<{ chatId: string }>()
   const [searchParams] = useSearchParams()
   const state = location.state as LocationState | null
   
@@ -41,14 +42,16 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
   const [dataLoading, setDataLoading] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement | null>(null)
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const hasFetchedInitialMessage = useRef(false)
   const hasFetchedVocab = useRef(false)
   const hasFetchedMessages = useRef(false)
   
-  // Get IDs from state (preferred) or URL params (fallback)
-  const chatId = state?.chatId || searchParams.get('chat-id') || null
+  // Get chatId from URL params (primary) or state/searchParams (fallback)
+  const chatId = params.chatId || state?.chatId || searchParams.get('chat-id') || null
   const themeId = state?.themeId || state?.theme?.id || searchParams.get('theme') || null
   const scenarioId = state?.scenarioId || state?.scenario?.id || searchParams.get('scenario') || null
   const languageLevel = state?.languageLevel || searchParams.get('language-level') || null
@@ -140,12 +143,12 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
       setMessages([])
       hasFetchedInitialMessage.current = false
       hasFetchedMessages.current = false
-      // Clear cache entry for this chatId to allow fresh fetch
+      // Clear cache entry for this chatId to allow fresh fetch on refresh
       fetchCache.messages.delete(cacheKey)
     }
   }, [chatId, token])
 
-  // Fetch existing messages when chat loads (only once per chatId)
+  // Fetch existing messages when chat loads
   useEffect(() => {
     let isCancelled = false
     const cacheKey = `${token}:${chatId}`
@@ -161,24 +164,27 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
         inCache: fetchCache.messages.has(cacheKey)
       })
       
-      if (!token || !chatId || fetchCache.messages.has(cacheKey) || hasFetchedMessages.current || messages.length > 0) {
-        console.log('[SpeechPracticeChat] Skipping fetch:', { 
-          noToken: !token, 
-          noChatId: !chatId, 
-          inCache: fetchCache.messages.has(cacheKey),
-          alreadyFetched: hasFetchedMessages.current,
-          hasMessages: messages.length > 0
-        })
+      // Don't fetch if we don't have token or chatId
+      if (!token || !chatId) {
+        console.log('[SpeechPracticeChat] Skipping fetch: missing token or chatId')
         return
       }
       
-      fetchCache.messages.add(cacheKey)
+      // Always fetch if messages array is empty (handles page refresh)
+      // Only skip if messages already exist in state (prevents duplicate fetches during React StrictMode)
+      if (messages.length > 0) {
+        console.log('[SpeechPracticeChat] Skipping fetch: messages already exist in state', messages.length)
+        return
+      }
+      
+      // Mark as fetching to prevent duplicate calls
       hasFetchedMessages.current = true
+      fetchCache.messages.add(cacheKey)
       
       try {
         setIsLoading(true)
         console.log('[SpeechPracticeChat] Fetching existing messages for chat:', chatId)
-        const existingMessages = await getChatMessages(token, chatId)
+        const existingMessages = await getChatMessageHistory(token, chatId)
         
         if (isCancelled) {
           console.log('[SpeechPracticeChat] Fetch cancelled, ignoring results')
@@ -186,15 +192,19 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
         }
         
         console.log('[SpeechPracticeChat] Received messages:', existingMessages)
+        console.log('[SpeechPracticeChat] Messages type:', typeof existingMessages, 'isArray:', Array.isArray(existingMessages))
+        console.log('[SpeechPracticeChat] Messages length:', existingMessages?.length)
         
-        if (existingMessages.length > 0) {
+        if (existingMessages && Array.isArray(existingMessages) && existingMessages.length > 0) {
           // Chat has existing messages, load them
           console.log('[SpeechPracticeChat] Loading existing messages:', existingMessages.length)
+          console.log('[SpeechPracticeChat] First message sample:', existingMessages[0])
           setMessages(existingMessages)
           hasFetchedInitialMessage.current = true
+          console.log('[SpeechPracticeChat] Messages state set successfully')
         } else {
-          // No existing messages, fetch initial message
-          console.log('[SpeechPracticeChat] No existing messages, fetching initial message')
+          // No existing messages, try to fetch initial message (only if chat hasn't started)
+          console.log('[SpeechPracticeChat] No existing messages, attempting to start conversation')
           try {
             hasFetchedInitialMessage.current = true
             const text = await postChatMessage({ token, chatId, message: undefined })
@@ -212,10 +222,20 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
               return
             }
             console.error('[SpeechPracticeChat] Error fetching initial message:', initErr)
-            // Don't remove from cache here - we tried to fetch, just failed
+            
+            // Check if error indicates chat is already started
+            const errorMessage = initErr?.message || ''
+            if (errorMessage.includes('already started') || errorMessage.includes('message is then mandatory')) {
+              // Chat is already started but has no messages - this shouldn't happen normally
+              // but handle it gracefully by showing empty state
+              console.log('[SpeechPracticeChat] Chat already started but no messages found')
+              setMessages([])
+            } else {
+              // Other error - show error message
             setMessages([
               { role: 'assistant', text: `Error: ${initErr?.message || 'Failed to start conversation'}` },
             ])
+            }
           }
         }
       } catch (err: any) {
@@ -229,7 +249,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
         hasFetchedMessages.current = false
         
         // If fetching messages fails, try to start a new conversation
-        // But only if it's a 404 (chat not found) or similar, not if chat already started
+        // But only if it's a 404 (chat not found) or similar, NOT if chat already started
         if (err?.message?.includes('404') || err?.message?.includes('not found')) {
           try {
             console.log('[SpeechPracticeChat] Attempting to start new conversation')
@@ -246,12 +266,23 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
           } catch (startErr: any) {
             if (isCancelled) return
             console.error('[SpeechPracticeChat] Error starting conversation:', startErr)
+            
+            // Check if error indicates chat is already started
+            const startErrorMessage = startErr?.message || ''
+            if (startErrorMessage.includes('already started') || startErrorMessage.includes('message is then mandatory')) {
+              // Chat is already started - try to fetch messages again or show empty state
+              console.log('[SpeechPracticeChat] Chat already started, showing empty state')
+              setMessages([])
+            } else {
+              // Other error - show error message
             setMessages([
               { role: 'assistant', text: `Error: ${startErr?.message || err?.message || 'Failed to load conversation'}` },
             ])
+            }
           }
         } else {
-          // For other errors, show error message
+          // For other errors (not 404), show error message
+          // Don't try to start conversation if it's not a 404 error
           setMessages([
             { role: 'assistant', text: `Error: ${err?.message || 'Failed to load conversation'}` },
           ])
@@ -330,6 +361,21 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
   const canSend = useMemo(() => {
     return !!token && !!chatId && !isLoading
   }, [token, chatId, isLoading])
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesContainerRef.current && messages.length > 0) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTo({
+            top: messagesContainerRef.current.scrollHeight,
+            behavior: 'smooth'
+          })
+        }
+      }, 100)
+    }
+  }, [messages])
 
   const send = useCallback(async () => {
     if (!canSend || !chatId) return
@@ -579,7 +625,11 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
                   </div>
                 ) : (
                   <>
-                    <div className="border border-gray-200 rounded-lg mb-4 bg-gray-50 overflow-y-auto" style={{ height: '400px' }}>
+                    <div 
+                      ref={messagesContainerRef}
+                      className="border border-gray-200 rounded-lg mb-4 bg-gray-50 overflow-y-auto" 
+                      style={{ height: '400px' }}
+                    >
                       <div className="p-4">
                         {messages.length === 0 ? (
                           <div className="text-center text-gray-500 py-8">
@@ -608,6 +658,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
                                 </div>
                               </div>
                             ))}
+                            <div ref={messagesEndRef} />
                           </div>
                         )}
                       </div>
