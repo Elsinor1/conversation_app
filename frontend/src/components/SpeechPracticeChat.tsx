@@ -4,7 +4,7 @@ import { postChatMessage, getChatMessageHistory, getVocabularyWords, getUserLang
 import VocabularySidebar from './VocabularySidebar'
 import ScenarioInfoSidebar from './ScenarioInfoSidebar'
 
-type Message = { role: 'assistant' | 'user'; text: string }
+type Message = { role: 'assistant' | 'user'; text: string; audio_url?: string }
 
 // Module-level cache to persist across component remounts (for React StrictMode)
 const fetchCache = {
@@ -148,6 +148,99 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
     }
   }, [chatId, token])
 
+  // Helper function to safely extract text from response message
+  const extractMessageText = useCallback((message: any): string => {
+    console.log('[extractMessageText] Input:', message, 'Type:', typeof message, 'IsArray:', Array.isArray(message));
+    
+    // Handle null/undefined
+    if (message == null) {
+      return '';
+    }
+    
+    // Handle strings
+    if (typeof message === 'string') {
+      return message;
+    }
+    
+    // Handle arrays (shouldn't happen, but be safe)
+    if (Array.isArray(message)) {
+      return message.map(m => extractMessageText(m)).join(' ');
+    }
+    
+    // Handle objects
+    if (typeof message === 'object') {
+      const msgObj = message as any;
+      // Try common text properties in order of likelihood
+      const extracted = msgObj.text || 
+                       msgObj.content || 
+                       msgObj.message || 
+                       msgObj.data?.text || 
+                       msgObj.data?.content || 
+                       msgObj.data?.message ||
+                       (typeof msgObj.toString === 'function' && msgObj.toString() !== '[object Object]' ? msgObj.toString() : null) ||
+                       JSON.stringify(message);
+      console.log('[extractMessageText] Extracted from object:', extracted);
+      return typeof extracted === 'string' ? extracted : String(extracted);
+    }
+    
+    // Fallback: convert to string
+    const result = String(message);
+    console.log('[extractMessageText] Converted to string:', result);
+    return result;
+  }, [])
+
+  // Function to play audio from URL
+  const playAudio = useCallback(async (audioUrl: string) => {
+    if (!audioUrl) {
+      console.log('[SpeechPracticeChat] playAudio called with empty URL')
+      return
+    }
+    
+    console.log('[SpeechPracticeChat] Playing audio:', audioUrl)
+    
+    try {
+      // Fetch audio with authentication headers
+      const effectiveToken = token || ''
+      const response = await fetch(audioUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Token ${effectiveToken}`,
+        },
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch audio: ${response.status} ${response.statusText}`)
+      }
+      
+      // Create blob URL from response
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      
+      console.log('[SpeechPracticeChat] Audio blob created, playing:', blobUrl)
+      
+      const audio = new Audio(blobUrl)
+      
+      audio.addEventListener('loadeddata', () => {
+        console.log('[SpeechPracticeChat] Audio loaded successfully')
+      })
+      
+      audio.addEventListener('error', (e) => {
+        console.error('[SpeechPracticeChat] Audio error:', e)
+        URL.revokeObjectURL(blobUrl) // Clean up blob URL on error
+      })
+      
+      audio.addEventListener('ended', () => {
+        URL.revokeObjectURL(blobUrl) // Clean up blob URL when done
+        console.log('[SpeechPracticeChat] Audio playback ended')
+      })
+      
+      await audio.play()
+      console.log('[SpeechPracticeChat] Audio playback started')
+    } catch (err: any) {
+      console.error('[SpeechPracticeChat] Error playing audio:', err)
+    }
+  }, [token])
+
   // Fetch existing messages when chat loads
   useEffect(() => {
     let isCancelled = false
@@ -199,7 +292,12 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
           // Chat has existing messages, load them
           console.log('[SpeechPracticeChat] Loading existing messages:', existingMessages.length)
           console.log('[SpeechPracticeChat] First message sample:', existingMessages[0])
-          setMessages(existingMessages)
+          // Ensure all messages have valid text (string, not object)
+          const validatedMessages = existingMessages.map(msg => ({
+            ...msg,
+            text: extractMessageText(msg.text),
+          }))
+          setMessages(validatedMessages)
           hasFetchedInitialMessage.current = true
           console.log('[SpeechPracticeChat] Messages state set successfully')
         } else {
@@ -207,15 +305,30 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
           console.log('[SpeechPracticeChat] No existing messages, attempting to start conversation')
           try {
             hasFetchedInitialMessage.current = true
-            const text = await postChatMessage({ token, chatId, message: undefined })
+            const response = await postChatMessage({ token, chatId, message: undefined })
             
             if (isCancelled) {
               console.log('[SpeechPracticeChat] Initial message fetch cancelled, ignoring results')
               return
             }
             
-            console.log('[SpeechPracticeChat] Initial message received:', text)
-            setMessages([{ role: 'assistant', text }])
+            console.log('[SpeechPracticeChat] Initial message received:', response)
+            console.log('[SpeechPracticeChat] Response message type:', typeof response.message, 'value:', response.message)
+            const initialMessage: Message = {
+              role: 'assistant',
+              text: extractMessageText(response.message),
+              audio_url: response.audio_url
+            }
+            setMessages([initialMessage])
+            
+            console.log('[SpeechPracticeChat] Initial message text:', initialMessage.text)
+            console.log('[SpeechPracticeChat] Initial message audio URL:', response.audio_url)
+            // Play audio if available
+            if (response.audio_url) {
+              setTimeout(() => {
+                playAudio(response.audio_url!)
+              }, 300)
+            }
           } catch (initErr: any) {
             if (isCancelled) {
               console.log('[SpeechPracticeChat] Initial message fetch cancelled, ignoring error')
@@ -255,14 +368,21 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
             console.log('[SpeechPracticeChat] Attempting to start new conversation')
             hasFetchedInitialMessage.current = true
             hasFetchedMessages.current = true
-            const text = await postChatMessage({ token, chatId, message: undefined })
+            const response = await postChatMessage({ token, chatId, message: undefined })
             
             if (isCancelled) {
               console.log('[SpeechPracticeChat] Start conversation cancelled, ignoring results')
               return
             }
             
-            setMessages([{ role: 'assistant', text }])
+            setMessages([{ role: 'assistant', text: extractMessageText(response.message), audio_url: response.audio_url }])
+            
+            // Play audio if available
+            if (response.audio_url) {
+              setTimeout(() => {
+                playAudio(response.audio_url!)
+              }, 300)
+            }
           } catch (startErr: any) {
             if (isCancelled) return
             console.error('[SpeechPracticeChat] Error starting conversation:', startErr)
@@ -301,7 +421,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
       isCancelled = true
       console.log('[SpeechPracticeChat] Cleanup: cancelling fetchMessages')
     }
-  }, [token, chatId])
+  }, [token, chatId, playAudio, extractMessageText])
 
   // Helper function to map language name to Azure speech recognition language code
   const getSpeechLanguageCode = useCallback((): string => {
@@ -386,8 +506,20 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
     }
     setIsLoading(true)
     try {
-      const text = await postChatMessage({ token, chatId, message: userText || undefined })
-      setMessages((prev) => [...prev, { role: 'assistant', text }])
+      const response = await postChatMessage({ token, chatId, message: userText || undefined })
+      console.log('[SpeechPracticeChat] send - Response:', response)
+      console.log('[SpeechPracticeChat] send - audio_url:', response.audio_url)
+      setMessages((prev) => [...prev, { role: 'assistant', text: extractMessageText(response.message), audio_url: response.audio_url }])
+      
+      // Play audio if available
+      if (response.audio_url) {
+        console.log('[SpeechPracticeChat] send - About to play audio:', response.audio_url)
+        setTimeout(() => {
+          playAudio(response.audio_url!)
+        }, 300)
+      } else {
+        console.log('[SpeechPracticeChat] send - No audio_url in response')
+      }
     } catch (err: any) {
       setMessages((prev) => [
         ...prev,
@@ -397,7 +529,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
       setIsLoading(false)
       inputRef.current?.focus()
     }
-  }, [canSend, chatId, input, token])
+  }, [canSend, chatId, input, token, playAudio, extractMessageText])
 
   const startRecording = useCallback(async () => {
     try {
@@ -466,8 +598,15 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
             const trimmedText = recognizedText.trim()
             if (trimmedText && chatId) {
               setMessages((prev) => [...prev, { role: 'user', text: trimmedText }])
-              const text = await postChatMessage({ token, chatId, message: trimmedText })
-              setMessages((prev) => [...prev, { role: 'assistant', text }])
+              const response = await postChatMessage({ token, chatId, message: trimmedText })
+              setMessages((prev) => [...prev, { role: 'assistant', text: extractMessageText(response.message), audio_url: response.audio_url }])
+              
+              // Play audio if available
+              if (response.audio_url) {
+                setTimeout(() => {
+                  playAudio(response.audio_url!)
+                }, 300)
+              }
             }
           } else {
             throw new Error(`Invalid response from speech recognition: ${recognizedText}`)
@@ -492,7 +631,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
       console.error('Error starting recording:', err)
       alert(`Failed to access microphone: ${err?.message || 'Unknown error'}`)
     }
-  }, [token, chatId, getSpeechLanguageCode])
+  }, [token, chatId, getSpeechLanguageCode, playAudio, extractMessageText])
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -534,8 +673,15 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
         const trimmedText = recognizedText.trim()
         if (trimmedText && chatId) {
           setMessages((prev) => [...prev, { role: 'user', text: trimmedText }])
-          const text = await postChatMessage({ token, chatId, message: trimmedText })
-          setMessages((prev) => [...prev, { role: 'assistant', text }])
+          const response = await postChatMessage({ token, chatId, message: trimmedText })
+          setMessages((prev) => [...prev, { role: 'assistant', text: extractMessageText(response.message), audio_url: response.audio_url }])
+          
+          // Play audio if available
+          if (response.audio_url) {
+            setTimeout(() => {
+              playAudio(response.audio_url!)
+            }, 300)
+          }
         }
       } else {
         throw new Error(`Invalid response from speech recognition: ${recognizedText}`)
@@ -550,7 +696,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
       setIsLoading(false)
       inputRef.current?.focus()
     }
-  }, [canSend, chatId, token, getSpeechLanguageCode])
+  }, [canSend, chatId, token, getSpeechLanguageCode, playAudio, extractMessageText])
 
   // Helper function to convert AudioBuffer to WAV Blob
   const audioBufferToWav = (buffer: AudioBuffer): Blob => {
@@ -654,7 +800,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
                                       : 'bg-white text-gray-900 border border-gray-200'
                                   }`}
                                 >
-                                  <div className="text-sm">{message.text}</div>
+                                  <div className="text-sm">{typeof message.text === 'string' ? message.text : extractMessageText(message.text)}</div>
                                 </div>
                               </div>
                             ))}

@@ -51,28 +51,28 @@ def convert_audio_to_text(audio_file, language='en-US'):
                 print("temp file path 2: ", temp_file_path)
         
         # Configure speech recognition
-        print("creating speech config...")
-        print("speech key: ", SPEECH_KEY)
+        # print("creating speech config...")
+        # print("speech key: ", SPEECH_KEY)
         # print("speech region: ", SPEECH_REGION)
-        print("azure endpoint: ", AZURE_ENDPOINT)
+        # print("azure endpoint: ", AZURE_ENDPOINT)
         speech_config = speechsdk.SpeechConfig(subscription=SPEECH_KEY, endpoint=AZURE_ENDPOINT)
-        print("speech config: ", speech_config)
+        # print("speech config: ", speech_config)
         speech_config.speech_recognition_language = language
-        print("speech recognition language: ", speech_config.speech_recognition_language)
+        # print("speech recognition language: ", speech_config.speech_recognition_language)
         # Use the temporary file path
-        print("creating audio config...")
+        # print("creating audio config...")
         audio_config = speechsdk.audio.AudioConfig(filename=temp_file_path)
-        print("audio config: ", audio_config)
-        print("speech config: ", speech_config)
+        # print("audio config: ", audio_config)
+        # print("speech config: ", speech_config)
         speech_recognizer = speechsdk.SpeechRecognizer(
             speech_config=speech_config, 
             audio_config=audio_config
         )
-        print("speech recognizer: ", speech_recognizer)
+        # print("speech recognizer: ", speech_recognizer)
         # Recognize speech
-        print("recognizing speech...")
+        # print("recognizing speech...")
         speech_recognition_result = speech_recognizer.recognize_once_async().get()
-        print("speech recognition result: ", speech_recognition_result)
+        # print("speech recognition result: ", speech_recognition_result)
         if speech_recognition_result.reason == speechsdk.ResultReason.NoMatch:
             raise Exception("No speech recognized")
         if speech_recognition_result.reason == speechsdk.ResultReason.Canceled:
@@ -89,3 +89,47 @@ def convert_audio_to_text(audio_file, language='en-US'):
                 os.unlink(temp_file_path)
             except Exception:
                 pass  # Ignore cleanup errors
+
+def convert_text_to_audio(text, language='en-US', message_id=None):
+    """
+    Convert text to audio and save to file
+    """
+    SPEECH_KEY = os.getenv('azure_speech_api_key')
+    AZURE_ENDPOINT = os.getenv('azure_speech_endpoint')
+    speech_config = speechsdk.SpeechConfig(subscription=SPEECH_KEY, endpoint=AZURE_ENDPOINT)
+    speech_config.speech_synthesis_language = language
+
+    # The neural multilingual voice can speak different languages based on the input text.
+    if language == 'en-US':
+        speech_config.speech_synthesis_voice_name = 'en-US-Ava:DragonHDLatestNeural'
+    elif language == 'de-DE':
+        speech_config.speech_synthesis_voice_name = 'de-DE-StefanNeural'
+
+    # Create unique filename if message_id is provided
+    if message_id:
+        filename = f'speech/speech_records/output_{message_id}.wav'
+    else:
+        filename = 'speech/speech_records/output.wav'
+    
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    
+    # Use AudioConfig with filename to save to file (not AudioOutputConfig which plays to speaker)
+    audio_config = speechsdk.audio.AudioConfig(filename=filename)
+    speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
+    
+    speech_synthesis_result = speech_synthesizer.speak_text_async(text).get()
+
+    if speech_synthesis_result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+        print("Speech synthesized for text [{}]".format(text))
+        return filename
+    elif speech_synthesis_result.reason == speechsdk.ResultReason.Canceled:
+        cancellation_details = speech_synthesis_result.cancellation_details
+        print("Speech synthesis canceled: {}".format(cancellation_details.reason))
+        if cancellation_details.reason == speechsdk.CancellationReason.Error:
+            if cancellation_details.error_details:
+                print("Error details: {}".format(cancellation_details.error_details))
+                print("Did you set the speech resource key and endpoint values?")
+        raise Exception(f"Speech synthesis canceled: {cancellation_details.reason}")
+    else:
+        raise Exception("Speech synthesis failed")

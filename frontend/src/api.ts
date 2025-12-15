@@ -5,7 +5,13 @@ export type PostChatMessageParams = {
   message?: string;
 };
 
-export async function postChatMessage({ token, chatId, message }: PostChatMessageParams): Promise<string> {
+export type PostChatMessageResponse = {
+  result: string;
+  message: string;
+  audio_url?: string;
+};
+
+export async function postChatMessage({ token, chatId, message }: PostChatMessageParams): Promise<PostChatMessageResponse> {
   const effectiveToken = token || getStoredToken() || ''
   const response = await fetch('/api/chat_message/', {
     method: 'POST',
@@ -23,8 +29,78 @@ export async function postChatMessage({ token, chatId, message }: PostChatMessag
 
   // Get response text
   const data = await response.json();
+  console.log('[postChatMessage] Raw response data:', data, 'Type:', typeof data);
   
-  return data.data;
+  // Handle both old format (just text) and new format (object with result, message, audio_url)
+  if (typeof data === 'string') {
+    console.log('[postChatMessage] String response, returning:', data);
+    return {
+      result: 'success',
+      message: data,
+    };
+  } else if (data.data) {
+    // Format wrapped in { data: {...} } - could be string or object with message/audio_url
+    console.log('[postChatMessage] data.data format, value:', data.data);
+    let messageText = '';
+    let audioUrl = undefined;
+    
+    if (typeof data.data === 'string') {
+      messageText = data.data;
+    } else if (typeof data.data === 'object' && data.data !== null) {
+      // Extract message text
+      messageText = data.data.text || data.data.content || data.data.message || JSON.stringify(data.data);
+      // Extract audio_url if present
+      audioUrl = data.data.audio_url;
+    } else {
+      messageText = String(data.data || '');
+    }
+    
+    const result = {
+      result: data.data.result || 'success',
+      message: messageText,
+      ...(audioUrl && { audio_url: audioUrl }),
+    };
+    console.log('[postChatMessage] Returning from data.data:', result);
+    return result;
+  } else if (data.message) {
+    // New format: { result: "success", message: "...", audio_url: "..." }
+    console.log('[postChatMessage] data.message format, value:', data.message, 'Type:', typeof data.message);
+    let messageText = data.message;
+    // Handle if message is an object (shouldn't happen, but be defensive)
+    if (typeof messageText !== 'string') {
+      if (typeof messageText === 'object' && messageText !== null) {
+        // If it's an object, try to extract text property or stringify
+        messageText = messageText.text || messageText.content || messageText.message || JSON.stringify(messageText);
+        console.log('[postChatMessage] Extracted from object:', messageText);
+      } else {
+        messageText = String(messageText || '');
+      }
+    }
+    const result = {
+      result: data.result || 'success',
+      message: messageText,
+      audio_url: data.audio_url,
+    };
+    console.log('[postChatMessage] Returning:', result);
+    return result;
+  } else {
+    // Fallback: if structure is unexpected, try to extract message or use empty string
+    console.warn('[postChatMessage] Unexpected response format:', data);
+    let fallbackMessage = '';
+    if (typeof data === 'string') {
+      fallbackMessage = data;
+    } else if (data.text) {
+      fallbackMessage = typeof data.text === 'string' ? data.text : String(data.text);
+    } else if (data.content) {
+      fallbackMessage = typeof data.content === 'string' ? data.content : String(data.content);
+    } else {
+      fallbackMessage = JSON.stringify(data);
+    }
+    return {
+      result: 'success',
+      message: fallbackMessage,
+    };
+  }
 }
 
 export type ChatMessage = {
