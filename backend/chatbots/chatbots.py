@@ -75,7 +75,9 @@ class ConversationBot:
         # Introduction for the chatbot, description of the theme, scenario and roles of AI and user
         system_message = f"""You are a great {chat.language_level.language} language teacher. You will start conversation with your student with theme: {chat.theme.title} 
                             with this scenario {chat.scenario.title}, described as {chat.scenario.description}. 
-                            You will be: {chat.scenario.teacher_role} and he will be {chat.scenario.student_role}. Your students language level is {chat.language_level.level}, so speak to him accordingly"""
+                            You will be: {chat.scenario.teacher_role} and he will be {chat.scenario.student_role}. Your students language level is {chat.language_level.level}, so speak to him accordingly. 
+                            You will start the conversation with a greeting and then ask the user to introduce themselves.
+                            Responde only in two sentces and ask following question to the user."""
         
         # Initial request from the user to start the conversation
         human_message = "Introduce yourself, please"

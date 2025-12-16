@@ -41,6 +41,10 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
   const [scenarioData, setScenarioData] = useState<Scenario | null>(state?.scenario || null)
   const [dataLoading, setDataLoading] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+  // Store blob URLs for all messages (keyed by message index)
+  // Never cleanup individual blobs - keep them for replay of any message
+  const [audioBlobUrls, setAudioBlobUrls] = useState<Map<number, string>>(new Map())
+  const audioBlobUrlsRef = useRef<Map<number, string>>(new Map()) // Ref for immediate access
   const inputRef = useRef<HTMLInputElement | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const messagesContainerRef = useRef<HTMLDivElement | null>(null)
@@ -49,6 +53,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
   const hasFetchedInitialMessage = useRef(false)
   const hasFetchedVocab = useRef(false)
   const hasFetchedMessages = useRef(false)
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null)
   
   // Get chatId from URL params (primary) or state/searchParams (fallback)
   const chatId = params.chatId || state?.chatId || searchParams.get('chat-id') || null
@@ -107,7 +112,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
   useEffect(() => {
     const fetchVocabData = async () => {
       if (!token || fetchCache.vocab.has(token)) {
-        console.log('[SpeechPracticeChat] Skipping vocab fetch:', { noToken: !token, alreadyCached: fetchCache.vocab.has(token) })
+        // console.log('[SpeechPracticeChat] Skipping vocab fetch:', { noToken: !token, alreadyCached: fetchCache.vocab.has(token) })
         return
       }
       
@@ -115,14 +120,14 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
       hasFetchedVocab.current = true
       try {
         setVocabLoading(true)
-        console.log('[SpeechPracticeChat] Fetching vocab data')
+        // console.log('[SpeechPracticeChat] Fetching vocab data')
         const [words, levels] = await Promise.all([
           getVocabularyWords(token),
           getUserLanguageLevels(token)
         ])
         setVocabularyWords(Array.isArray(words) ? words : [])
         setLanguageLevels(Array.isArray(levels) ? levels : [])
-        console.log('[SpeechPracticeChat] Vocab data fetched:', { wordsCount: words.length, levelsCount: levels.length })
+        // console.log('[SpeechPracticeChat] Vocab data fetched:', { wordsCount: words.length, levelsCount: levels.length })
       } catch (err) {
         console.error('[SpeechPracticeChat] Error fetching vocabulary data:', err)
         fetchCache.vocab.delete(token) // Remove from cache on error to allow retry
@@ -135,22 +140,53 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
     fetchVocabData()
   }, [token])
 
+  // Cleanup function for old audio blob URL
+  const cleanupAudioBlob = useCallback((blobUrl: string | null) => {
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl)
+      // console.log('[SpeechPracticeChat] Cleaned up audio blob URL')
+    }
+  }, [])
+
   // Reset messages and fetch flags when chatId changes
   useEffect(() => {
     if (chatId) {
       const cacheKey = `${token}:${chatId}`
-      console.log('[SpeechPracticeChat] ChatId changed, resetting state', { chatId, cacheKey })
+      // console.log('[SpeechPracticeChat] ChatId changed, resetting state', { chatId, cacheKey })
       setMessages([])
       hasFetchedInitialMessage.current = false
       hasFetchedMessages.current = false
       // Clear cache entry for this chatId to allow fresh fetch on refresh
       fetchCache.messages.delete(cacheKey)
+      
+      // Clean up all audio blobs when chat changes
+      audioBlobUrlsRef.current.forEach((blobUrl) => {
+        cleanupAudioBlob(blobUrl)
+      })
+      audioBlobUrlsRef.current.clear()
+      setAudioBlobUrls(new Map())
     }
-  }, [chatId, token])
+  }, [chatId, token, cleanupAudioBlob])
+
+  // Cleanup all audio blobs on unmount only
+  useEffect(() => {
+    return () => {
+      // Stop any playing audio
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause()
+        currentAudioRef.current = null
+      }
+      // Cleanup all blob URLs
+      audioBlobUrlsRef.current.forEach((blobUrl) => {
+        cleanupAudioBlob(blobUrl)
+      })
+      audioBlobUrlsRef.current.clear()
+    }
+  }, []) // Empty deps = only run cleanup on unmount
 
   // Helper function to safely extract text from response message
   const extractMessageText = useCallback((message: any): string => {
-    console.log('[extractMessageText] Input:', message, 'Type:', typeof message, 'IsArray:', Array.isArray(message));
+    // console.log('[extractMessageText] Input:', message, 'Type:', typeof message, 'IsArray:', Array.isArray(message));
     
     // Handle null/undefined
     if (message == null) {
@@ -179,18 +215,19 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
                        msgObj.data?.message ||
                        (typeof msgObj.toString === 'function' && msgObj.toString() !== '[object Object]' ? msgObj.toString() : null) ||
                        JSON.stringify(message);
-      console.log('[extractMessageText] Extracted from object:', extracted);
+      // console.log('[extractMessageText] Extracted from object:', extracted);
       return typeof extracted === 'string' ? extracted : String(extracted);
     }
     
     // Fallback: convert to string
     const result = String(message);
-    console.log('[extractMessageText] Converted to string:', result);
+    // console.log('[extractMessageText] Converted to string:', result);
     return result;
   }, [])
 
   // Function to play audio from URL
-  const playAudio = useCallback(async (audioUrl: string) => {
+  // Caches the blob URL for the message at the given index (for replay)
+  const playAudio = useCallback(async (audioUrl: string, messageIndex?: number) => {
     if (!audioUrl) {
       console.log('[SpeechPracticeChat] playAudio called with empty URL')
       return
@@ -198,8 +235,12 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
     
     console.log('[SpeechPracticeChat] Playing audio:', audioUrl)
     
+    
     try {
-      // Fetch audio with authentication headers
+      // Store the current audio ref before cleanup to avoid race conditions
+      const previousAudio = currentAudioRef.current
+      
+      // Fetch audio with authentication headers first
       const effectiveToken = token || ''
       const response = await fetch(audioUrl, {
         method: 'GET',
@@ -218,28 +259,124 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
       
       console.log('[SpeechPracticeChat] Audio blob created, playing:', blobUrl)
       
-      const audio = new Audio(blobUrl)
+      // Don't cleanup previous blobs - keep them all for replay
       
-      audio.addEventListener('loadeddata', () => {
-        console.log('[SpeechPracticeChat] Audio loaded successfully')
+      // Check if another playAudio call happened during fetch
+      const currentAudioDuringFetch = currentAudioRef.current
+      if (currentAudioDuringFetch && currentAudioDuringFetch !== previousAudio) {
+        // Another audio was set while we were fetching, pause it
+        currentAudioDuringFetch.pause()
+        currentAudioDuringFetch.src = ''
+      } else if (previousAudio && previousAudio.src !== blobUrl) {
+        // Previous audio is different, pause it
+        previousAudio.pause()
+        previousAudio.src = ''
+      }
+      
+      const audio = new Audio(blobUrl)
+      currentAudioRef.current = audio
+      
+      // Cache blob URL for this message (for replay)
+      if (messageIndex !== undefined) {
+        console.log('[SpeechPracticeChat] Caching audio blob for message index:', messageIndex, 'blobUrl:', blobUrl)
+        // Update ref immediately (synchronous)
+        audioBlobUrlsRef.current.set(messageIndex, blobUrl)
+        // Update state (asynchronous)
+        setAudioBlobUrls(new Map(audioBlobUrlsRef.current))
+      } else {
+        console.log('[SpeechPracticeChat] Not caching - messageIndex is undefined')
+      }
+      
+      // Wait for audio to be ready before playing
+      await new Promise<void>((resolve, reject) => {
+        audio.addEventListener('loadeddata', () => {
+          console.log('[SpeechPracticeChat] Audio loaded successfully')
+          resolve()
+        }, { once: true })
+        
+        audio.addEventListener('error', (e) => {
+          console.error('[SpeechPracticeChat] Audio error:', e)
+          // Only clear ref if this is still the current audio
+          if (currentAudioRef.current === audio) {
+            currentAudioRef.current = null
+          }
+          // Don't revoke blob URL - it's cached for replay
+          reject(e)
+        }, { once: true })
+        
+        // If already loaded, resolve immediately
+        if (audio.readyState >= 2) {
+          resolve()
+        }
+      })
+      
+      // Check if audio was cleared (another call might have happened)
+      if (currentAudioRef.current !== audio) {
+        console.log('[SpeechPracticeChat] Audio was cleared before play, skipping. Current ref:', currentAudioRef.current ? 'exists' : 'null', 'Expected audio:', audio)
+        // Don't revoke blob URL - it's cached for replay
+        return
+      }
+      
+      audio.addEventListener('ended', () => {
+        // Don't revoke blob URL - it's cached for replay
+        // Only clear if this is still the current audio
+        if (currentAudioRef.current === audio) {
+          currentAudioRef.current = null
+        }
+        console.log('[SpeechPracticeChat] Audio playback ended')
+      }, { once: true })
+      
+      try {
+        await audio.play()
+        console.log('[SpeechPracticeChat] Audio playback started')
+      } catch (playErr: any) {
+        // Handle play interruption gracefully
+        if (playErr.name === 'AbortError' || playErr.name === 'NotAllowedError') {
+          console.log('[SpeechPracticeChat] Audio play was interrupted or not allowed:', playErr.message)
+        } else {
+          throw playErr
+        }
+      }
+    } catch (err: any) {
+      console.error('[SpeechPracticeChat] Error playing audio:', err)
+      currentAudioRef.current = null
+    }
+  }, [token, cleanupAudioBlob, messages.length])
+
+  // Replay function for a specific message
+  const replayAudio = useCallback((messageIndex: number) => {
+    // Use ref first (always current), fallback to state
+    const blobUrl = audioBlobUrlsRef.current.get(messageIndex) || audioBlobUrls.get(messageIndex)
+    if (blobUrl) {
+      console.log('[SpeechPracticeChat] Replaying audio for message index:', messageIndex, 'blobUrl:', blobUrl)
+      
+      // Stop current audio if playing
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause()
+        currentAudioRef.current = null
+      }
+      
+      const audio = new Audio(blobUrl)
+      currentAudioRef.current = audio
+      
+      audio.addEventListener('ended', () => {
+        currentAudioRef.current = null
+        console.log('[SpeechPracticeChat] Replay ended')
       })
       
       audio.addEventListener('error', (e) => {
-        console.error('[SpeechPracticeChat] Audio error:', e)
-        URL.revokeObjectURL(blobUrl) // Clean up blob URL on error
+        console.error('[SpeechPracticeChat] Replay error:', e)
+        currentAudioRef.current = null
       })
       
-      audio.addEventListener('ended', () => {
-        URL.revokeObjectURL(blobUrl) // Clean up blob URL when done
-        console.log('[SpeechPracticeChat] Audio playback ended')
+      audio.play().catch(err => {
+        console.error('[SpeechPracticeChat] Error replaying audio:', err)
+        currentAudioRef.current = null
       })
-      
-      await audio.play()
-      console.log('[SpeechPracticeChat] Audio playback started')
-    } catch (err: any) {
-      console.error('[SpeechPracticeChat] Error playing audio:', err)
+    } else {
+      console.log('[SpeechPracticeChat] Cannot replay - no blob URL available for index:', messageIndex)
     }
-  }, [token])
+  }, [audioBlobUrls])
 
   // Fetch existing messages when chat loads
   useEffect(() => {
@@ -247,26 +384,26 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
     const cacheKey = `${token}:${chatId}`
     
     const fetchMessages = async () => {
-      console.log('[SpeechPracticeChat] fetchMessages effect triggered:', { 
-        token: token ? 'present' : 'missing', 
-        chatId, 
-        cacheKey,
-        hasFetchedMessages: hasFetchedMessages.current,
-        hasFetchedInitial: hasFetchedInitialMessage.current,
-        messagesCount: messages.length,
-        inCache: fetchCache.messages.has(cacheKey)
-      })
+      // console.log('[SpeechPracticeChat] fetchMessages effect triggered:', { 
+      //   token: token ? 'present' : 'missing', 
+      //   chatId, 
+      //   cacheKey,
+      //   hasFetchedMessages: hasFetchedMessages.current,
+      //   hasFetchedInitial: hasFetchedInitialMessage.current,
+      //   messagesCount: messages.length,
+      //   inCache: fetchCache.messages.has(cacheKey)
+      // })
       
       // Don't fetch if we don't have token or chatId
       if (!token || !chatId) {
-        console.log('[SpeechPracticeChat] Skipping fetch: missing token or chatId')
+        // console.log('[SpeechPracticeChat] Skipping fetch: missing token or chatId')
         return
       }
       
       // Always fetch if messages array is empty (handles page refresh)
       // Only skip if messages already exist in state (prevents duplicate fetches during React StrictMode)
       if (messages.length > 0) {
-        console.log('[SpeechPracticeChat] Skipping fetch: messages already exist in state', messages.length)
+        // console.log('[SpeechPracticeChat] Skipping fetch: messages already exist in state', messages.length)
         return
       }
       
@@ -276,44 +413,47 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
       
       try {
         setIsLoading(true)
-        console.log('[SpeechPracticeChat] Fetching existing messages for chat:', chatId)
+        // console.log('[SpeechPracticeChat] Fetching existing messages for chat:', chatId)
         const existingMessages = await getChatMessageHistory(token, chatId)
         
         if (isCancelled) {
-          console.log('[SpeechPracticeChat] Fetch cancelled, ignoring results')
+          // console.log('[SpeechPracticeChat] Fetch cancelled, ignoring results')
           return
         }
         
-        console.log('[SpeechPracticeChat] Received messages:', existingMessages)
-        console.log('[SpeechPracticeChat] Messages type:', typeof existingMessages, 'isArray:', Array.isArray(existingMessages))
-        console.log('[SpeechPracticeChat] Messages length:', existingMessages?.length)
+        // console.log('[SpeechPracticeChat] Received messages:', existingMessages)
+        // console.log('[SpeechPracticeChat] Messages type:', typeof existingMessages, 'isArray:', Array.isArray(existingMessages))
+        // console.log('[SpeechPracticeChat] Messages length:', existingMessages?.length)
         
         if (existingMessages && Array.isArray(existingMessages) && existingMessages.length > 0) {
           // Chat has existing messages, load them
-          console.log('[SpeechPracticeChat] Loading existing messages:', existingMessages.length)
-          console.log('[SpeechPracticeChat] First message sample:', existingMessages[0])
+          // console.log('[SpeechPracticeChat] Loading existing messages:', existingMessages.length)
+          // console.log('[SpeechPracticeChat] First message sample:', existingMessages[0])
           // Ensure all messages have valid text (string, not object)
           const validatedMessages = existingMessages.map(msg => ({
             ...msg,
             text: extractMessageText(msg.text),
           }))
+          
+          // Don't clear audio blobs when loading history - keep them all for replay
+          // The blob URLs are stored by message index, so they'll persist
           setMessages(validatedMessages)
           hasFetchedInitialMessage.current = true
-          console.log('[SpeechPracticeChat] Messages state set successfully')
+          // console.log('[SpeechPracticeChat] Messages state set successfully')
         } else {
           // No existing messages, try to fetch initial message (only if chat hasn't started)
-          console.log('[SpeechPracticeChat] No existing messages, attempting to start conversation')
+          // console.log('[SpeechPracticeChat] No existing messages, attempting to start conversation')
           try {
             hasFetchedInitialMessage.current = true
             const response = await postChatMessage({ token, chatId, message: undefined })
             
             if (isCancelled) {
-              console.log('[SpeechPracticeChat] Initial message fetch cancelled, ignoring results')
+              // console.log('[SpeechPracticeChat] Initial message fetch cancelled, ignoring results')
               return
             }
             
-            console.log('[SpeechPracticeChat] Initial message received:', response)
-            console.log('[SpeechPracticeChat] Response message type:', typeof response.message, 'value:', response.message)
+            // console.log('[SpeechPracticeChat] Initial message received:', response)
+            // console.log('[SpeechPracticeChat] Response message type:', typeof response.message, 'value:', response.message)
             const initialMessage: Message = {
               role: 'assistant',
               text: extractMessageText(response.message),
@@ -321,17 +461,19 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
             }
             setMessages([initialMessage])
             
-            console.log('[SpeechPracticeChat] Initial message text:', initialMessage.text)
+            // Don't cleanup audio blobs - keep them all for replay
+            
+            // console.log('[SpeechPracticeChat] Initial message text:', initialMessage.text)
             console.log('[SpeechPracticeChat] Initial message audio URL:', response.audio_url)
-            // Play audio if available
+            // Play audio if available (index 0 since it's the first message)
             if (response.audio_url) {
               setTimeout(() => {
-                playAudio(response.audio_url!)
+                playAudio(response.audio_url!, 0)
               }, 300)
             }
           } catch (initErr: any) {
             if (isCancelled) {
-              console.log('[SpeechPracticeChat] Initial message fetch cancelled, ignoring error')
+              // console.log('[SpeechPracticeChat] Initial message fetch cancelled, ignoring error')
               return
             }
             console.error('[SpeechPracticeChat] Error fetching initial message:', initErr)
@@ -341,7 +483,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
             if (errorMessage.includes('already started') || errorMessage.includes('message is then mandatory')) {
               // Chat is already started but has no messages - this shouldn't happen normally
               // but handle it gracefully by showing empty state
-              console.log('[SpeechPracticeChat] Chat already started but no messages found')
+              // console.log('[SpeechPracticeChat] Chat already started but no messages found')
               setMessages([])
             } else {
               // Other error - show error message
@@ -353,7 +495,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
         }
       } catch (err: any) {
         if (isCancelled) {
-          console.log('[SpeechPracticeChat] Fetch cancelled, ignoring error')
+          // console.log('[SpeechPracticeChat] Fetch cancelled, ignoring error')
           return
         }
         
@@ -365,22 +507,24 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
         // But only if it's a 404 (chat not found) or similar, NOT if chat already started
         if (err?.message?.includes('404') || err?.message?.includes('not found')) {
           try {
-            console.log('[SpeechPracticeChat] Attempting to start new conversation')
+            // console.log('[SpeechPracticeChat] Attempting to start new conversation')
             hasFetchedInitialMessage.current = true
             hasFetchedMessages.current = true
             const response = await postChatMessage({ token, chatId, message: undefined })
             
             if (isCancelled) {
-              console.log('[SpeechPracticeChat] Start conversation cancelled, ignoring results')
+              // console.log('[SpeechPracticeChat] Start conversation cancelled, ignoring results')
               return
             }
             
             setMessages([{ role: 'assistant', text: extractMessageText(response.message), audio_url: response.audio_url }])
             
-            // Play audio if available
+            // Don't cleanup audio blobs - keep them all for replay
+            
+            // Play audio if available (index 0 since it's the first message)
             if (response.audio_url) {
               setTimeout(() => {
-                playAudio(response.audio_url!)
+                playAudio(response.audio_url!, 0)
               }, 300)
             }
           } catch (startErr: any) {
@@ -391,7 +535,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
             const startErrorMessage = startErr?.message || ''
             if (startErrorMessage.includes('already started') || startErrorMessage.includes('message is then mandatory')) {
               // Chat is already started - try to fetch messages again or show empty state
-              console.log('[SpeechPracticeChat] Chat already started, showing empty state')
+              // console.log('[SpeechPracticeChat] Chat already started, showing empty state')
               setMessages([])
             } else {
               // Other error - show error message
@@ -419,7 +563,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
     // Cleanup function to cancel in-flight requests
     return () => {
       isCancelled = true
-      console.log('[SpeechPracticeChat] Cleanup: cancelling fetchMessages')
+      // console.log('[SpeechPracticeChat] Cleanup: cancelling fetchMessages')
     }
   }, [token, chatId, playAudio, extractMessageText])
 
@@ -501,24 +645,32 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
     if (!canSend || !chatId) return
     const userText = input.trim()
     setInput('')
+    
     if (userText) {
       setMessages((prev) => [...prev, { role: 'user', text: userText }])
     }
     setIsLoading(true)
     try {
       const response = await postChatMessage({ token, chatId, message: userText || undefined })
-      console.log('[SpeechPracticeChat] send - Response:', response)
+      // console.log('[SpeechPracticeChat] send - Response:', response)
       console.log('[SpeechPracticeChat] send - audio_url:', response.audio_url)
-      setMessages((prev) => [...prev, { role: 'assistant', text: extractMessageText(response.message), audio_url: response.audio_url }])
+      const newMessage: Message = { role: 'assistant', text: extractMessageText(response.message), audio_url: response.audio_url }
+      // console.log('[SpeechPracticeChat] send - New message object:', newMessage)
+      // console.log('[SpeechPracticeChat] send - Assistant message will be at index:', assistantMessageIndex, 'current messages.length:', messages.length, 'userMessageAdded:', userMessageAdded)
+      
+      setMessages((prev) => {
+        // console.log('[SpeechPracticeChat] send - Setting messages, prev.length:', prev.length, 'expected index:', assistantMessageIndex)
+        return [...prev, newMessage]
+      })
       
       // Play audio if available
       if (response.audio_url) {
-        console.log('[SpeechPracticeChat] send - About to play audio:', response.audio_url)
+        // Calculate message index: current length + 1 if user message was added
+        const assistantMessageIndex = messages.length + (userText ? 1 : 0)
+        console.log('[SpeechPracticeChat] send - About to play audio:', response.audio_url, 'at index:', assistantMessageIndex)
         setTimeout(() => {
-          playAudio(response.audio_url!)
+          playAudio(response.audio_url!, assistantMessageIndex)
         }, 300)
-      } else {
-        console.log('[SpeechPracticeChat] send - No audio_url in response')
       }
     } catch (err: any) {
       setMessages((prev) => [
@@ -589,7 +741,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
             language: speechLanguage
           })
           
-          console.log('Recognized text:', recognizedText, 'Type:', typeof recognizedText)
+          // console.log('Recognized text:', recognizedText, 'Type:', typeof recognizedText)
           
           // Set the recognized text as input and send it
           if (recognizedText && typeof recognizedText === 'string') {
@@ -599,12 +751,15 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
             if (trimmedText && chatId) {
               setMessages((prev) => [...prev, { role: 'user', text: trimmedText }])
               const response = await postChatMessage({ token, chatId, message: trimmedText })
-              setMessages((prev) => [...prev, { role: 'assistant', text: extractMessageText(response.message), audio_url: response.audio_url }])
+              const voiceMessage: Message = { role: 'assistant', text: extractMessageText(response.message), audio_url: response.audio_url }
+              // Calculate message index: current length + 1 for user message
+              const voiceMessageIndex = messages.length + 1
+              setMessages((prev) => [...prev, voiceMessage])
               
               // Play audio if available
               if (response.audio_url) {
                 setTimeout(() => {
-                  playAudio(response.audio_url!)
+                  playAudio(response.audio_url!, voiceMessageIndex)
                 }, 300)
               }
             }
@@ -664,25 +819,29 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
         language: speechLanguage
       })
       
-      console.log('Recognized text (sample):', recognizedText, 'Type:', typeof recognizedText)
+      // console.log('Recognized text (sample):', recognizedText, 'Type:', typeof recognizedText)
       
       // Set the recognized text as input and send it
       if (recognizedText && typeof recognizedText === 'string') {
         setInput(recognizedText)
         // Automatically send the message
-        const trimmedText = recognizedText.trim()
-        if (trimmedText && chatId) {
-          setMessages((prev) => [...prev, { role: 'user', text: trimmedText }])
-          const response = await postChatMessage({ token, chatId, message: trimmedText })
-          setMessages((prev) => [...prev, { role: 'assistant', text: extractMessageText(response.message), audio_url: response.audio_url }])
-          
-          // Play audio if available
-          if (response.audio_url) {
-            setTimeout(() => {
-              playAudio(response.audio_url!)
-            }, 300)
+          const trimmedText = recognizedText.trim()
+          if (trimmedText && chatId) {
+            setMessages((prev) => [...prev, { role: 'user', text: trimmedText }])
+            const response = await postChatMessage({ token, chatId, message: trimmedText })
+            const sampleMessage: Message = { role: 'assistant', text: extractMessageText(response.message), audio_url: response.audio_url }
+            // Calculate message index: current length + 1 for user message
+            const sampleMessageIndex = messages.length + 1
+            setMessages((prev) => [...prev, sampleMessage])
+            
+            // Play audio if available
+            if (response.audio_url) {
+              console.log('[SpeechPracticeChat] sample test - About to play audio at index:', sampleMessageIndex)
+              setTimeout(() => {
+                playAudio(response.audio_url!, sampleMessageIndex)
+              }, 300)
+            }
           }
-        }
       } else {
         throw new Error(`Invalid response from speech recognition: ${recognizedText}`)
       }
@@ -791,7 +950,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
                             {messages.map((message, idx) => (
                               <div
                                 key={idx}
-                                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} items-start gap-2`}
                               >
                                 <div
                                   className={`px-3 py-2 rounded-lg max-w-[70%] ${
@@ -802,6 +961,23 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
                                 >
                                   <div className="text-sm">{typeof message.text === 'string' ? message.text : extractMessageText(message.text)}</div>
                                 </div>
+                                {message.role === 'assistant' && (
+                                  (audioBlobUrlsRef.current.get(idx) || audioBlobUrls.get(idx)) ? (
+                                    <button
+                                      onClick={() => {
+                                        console.log('[SpeechPracticeChat] Replay button clicked for message index:', idx)
+                                        replayAudio(idx)
+                                      }}
+                                      className="mt-1 p-1.5 rounded-full hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0"
+                                      title="Replay audio"
+                                      type="button"
+                                    >
+                                      <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                                      </svg>
+                                    </button>
+                                  ) : null
+                                )}
                               </div>
                             ))}
                             <div ref={messagesEndRef} />
