@@ -23,7 +23,12 @@ def convert_audio_to_text(audio_file, language='en-US'):
        - Django may delete it when request ends
        - We need control over cleanup timing (after Azure SDK finishes)
        - Ensures consistent behavior regardless of file size
+    
+    Also saves input audio to speech/speech_records/input folder for record keeping.
     """
+    import uuid
+    import shutil
+    from datetime import datetime
     
     SPEECH_KEY = os.getenv('azure_speech_api_key')
     # SPEECH_REGION = os.getenv('azure_speech_region', 'westeurope')  # Default region if not set
@@ -31,6 +36,7 @@ def convert_audio_to_text(audio_file, language='en-US'):
     
     temp_file_path = None
     created_our_temp_file = False
+    saved_input_file = None
     try:
         # Check if file is already on disk (TemporaryUploadedFile)
         if isinstance(audio_file, TemporaryUploadedFile) and hasattr(audio_file, 'temporary_file_path'):
@@ -73,6 +79,23 @@ def convert_audio_to_text(audio_file, language='en-US'):
         # print("recognizing speech...")
         speech_recognition_result = speech_recognizer.recognize_once_async().get()
         # print("speech recognition result: ", speech_recognition_result)
+        
+        # Save input audio to speech/speech_records/input folder AFTER recognition (non-blocking)
+        # This way it doesn't interfere with the recognition process or file handles
+        try:
+            os.makedirs('speech/speech_records/input', exist_ok=True)
+            # Create unique filename with timestamp
+            input_filename = f'speech/speech_records/input/{datetime.now().strftime("%Y%m%d_%H%M%S")}_{uuid.uuid4().hex[:8]}.wav'
+            # Copy file to input folder (this shouldn't affect the original temp file)
+            shutil.copy2(temp_file_path, input_filename)
+            saved_input_file = input_filename
+            print(f"Saved input audio to: {input_filename}")
+        except Exception as save_error:
+            # Don't fail the whole operation if saving input file fails
+            print(f"Warning: Failed to save input audio file: {save_error}")
+            saved_input_file = None
+        
+        # Check recognition results
         if speech_recognition_result.reason == speechsdk.ResultReason.NoMatch:
             raise Exception("No speech recognized")
         if speech_recognition_result.reason == speechsdk.ResultReason.Canceled:

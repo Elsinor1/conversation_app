@@ -41,6 +41,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
   const [scenarioData, setScenarioData] = useState<Scenario | null>(state?.scenario || null)
   const [dataLoading, setDataLoading] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+  const [editBeforeSend, setEditBeforeSend] = useState(false)
   // Store blob URLs for all messages (keyed by message index)
   // Never cleanup individual blobs - keep them for replay of any message
   const [audioBlobUrls, setAudioBlobUrls] = useState<Map<number, string>>(new Map())
@@ -745,22 +746,26 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
           
           // Set the recognized text as input and send it
           if (recognizedText && typeof recognizedText === 'string') {
-            setInput(recognizedText)
-            // Automatically send the message
-            const trimmedText = recognizedText.trim()
-            if (trimmedText && chatId) {
-              setMessages((prev) => [...prev, { role: 'user', text: trimmedText }])
-              const response = await postChatMessage({ token, chatId, message: trimmedText })
-              const voiceMessage: Message = { role: 'assistant', text: extractMessageText(response.message), audio_url: response.audio_url }
-              // Calculate message index: current length + 1 for user message
-              const voiceMessageIndex = messages.length + 1
-              setMessages((prev) => [...prev, voiceMessage])
-              
-              // Play audio if available
-              if (response.audio_url) {
-                setTimeout(() => {
-                  playAudio(response.audio_url!, voiceMessageIndex)
-                }, 300)
+            if (editBeforeSend) {
+              // Fill input box but don't auto-send - user can edit first
+              setInput(recognizedText)
+            } else {
+              // Don't fill input box, auto-send the message
+              const trimmedText = recognizedText.trim()
+              if (trimmedText && chatId) {
+                setMessages((prev) => [...prev, { role: 'user', text: trimmedText }])
+                const response = await postChatMessage({ token, chatId, message: trimmedText })
+                const voiceMessage: Message = { role: 'assistant', text: extractMessageText(response.message), audio_url: response.audio_url }
+                // Calculate message index: current length + 1 for user message
+                const voiceMessageIndex = messages.length + 1
+                setMessages((prev) => [...prev, voiceMessage])
+                
+                // Play audio if available
+                if (response.audio_url) {
+                  setTimeout(() => {
+                    playAudio(response.audio_url!, voiceMessageIndex)
+                  }, 300)
+                }
               }
             }
           } else {
@@ -786,7 +791,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
       console.error('Error starting recording:', err)
       alert(`Failed to access microphone: ${err?.message || 'Unknown error'}`)
     }
-  }, [token, chatId, getSpeechLanguageCode, playAudio, extractMessageText])
+  }, [token, chatId, getSpeechLanguageCode, playAudio, extractMessageText, editBeforeSend, messages.length])
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -823,8 +828,11 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
       
       // Set the recognized text as input and send it
       if (recognizedText && typeof recognizedText === 'string') {
-        setInput(recognizedText)
-        // Automatically send the message
+        if (editBeforeSend) {
+          // Fill input box but don't auto-send - user can edit first
+          setInput(recognizedText)
+        } else {
+          // Don't fill input box, auto-send the message
           const trimmedText = recognizedText.trim()
           if (trimmedText && chatId) {
             setMessages((prev) => [...prev, { role: 'user', text: trimmedText }])
@@ -842,6 +850,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
               }, 300)
             }
           }
+        }
       } else {
         throw new Error(`Invalid response from speech recognition: ${recognizedText}`)
       }
@@ -855,7 +864,7 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
       setIsLoading(false)
       inputRef.current?.focus()
     }
-  }, [canSend, chatId, token, getSpeechLanguageCode, playAudio, extractMessageText])
+  }, [canSend, chatId, token, getSpeechLanguageCode, playAudio, extractMessageText, editBeforeSend, messages.length])
 
   // Helper function to convert AudioBuffer to WAV Blob
   const audioBufferToWav = (buffer: AudioBuffer): Blob => {
@@ -984,6 +993,18 @@ export default function SpeechPracticeChat({ token }: SpeechPracticeChatProps) {
                           </div>
                         )}
                       </div>
+                    </div>
+
+                    <div className="mb-2">
+                      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editBeforeSend}
+                          onChange={(e) => setEditBeforeSend(e.target.checked)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span>Edit recognized text before sending</span>
+                      </label>
                     </div>
 
                     <div className="flex gap-2">
