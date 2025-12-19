@@ -10,7 +10,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from .serializers import SpeechToTextSerializer
-from .helpers import convert_audio_to_text
+from .helpers import convert_audio_to_text, save_audio_to_file, SpeechRecognizer
 dotenv.load_dotenv()
 
 
@@ -26,7 +26,10 @@ class SpeechToTextView(APIView):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             print(serializer.validated_data)
-            text = convert_audio_to_text(serializer.validated_data['audio'], serializer.validated_data.get('language', 'en-US'))
+            file_path = save_audio_to_file(serializer.validated_data['audio'])
+            recognizer = SpeechRecognizer(file_path, serializer.validated_data.get('language', 'en-US'))
+            text = recognizer.transcribe()
+            # text = convert_audio_to_text(serializer.validated_data['audio'], serializer.validated_data.get('language', 'en-US'))
             return Response({"text": text}, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
